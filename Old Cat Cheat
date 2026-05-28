@@ -1,114 +1,162 @@
---[[老猫脚本 Loader 0.08v | qweasdtbb/qqGame]]
-local Players=game:GetService("Players")
-local RunService=game:GetService("RunService")
-local UserInput=game:GetService("UserInputService")
-local CoreGui=game:GetService("CoreGui")
+--[[
+================================================
+老猫脚本 Loader v0.09 Final
+GitHub : qweasdtbb / qqGame / Old Cat Cheat
+功能 :
+ ✅ 白名单(开发者/管理员) → 免密钥
+ ✅ 普通用户 → 限时密钥验证
+ ✅ 暗黑悬浮UI（无标题栏 / 可拖）
+ ✅ loadstring 拉取主脚本
+================================================
+]]
 
-local LocalPlayer=Players.LocalPlayer
-local Camera=workspace.CurrentCamera
+-- // 服务
+local Players       = game:GetService("Players")
+local RunService    = game:GetService("RunService")
+local UserInputSrv  = game:GetService("UserInputService")
+local CoreGui       = game:GetService("CoreGui")
 
--- ScreenGui
-local sg=Instance.new("ScreenGui")
-sg.Name="LaoMao"
-sg.ResetOnSpawn=false
-sg.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
-sg.IgnoreGuiInset=true
-pcall(function()sg.Parent=CoreGui end)
-if not sg.Parent then sg.Parent=LocalPlayer:WaitForChild("PlayerGui")end
+local LP    = Players.LocalPlayer
+local PG    = LP:WaitForChild("PlayerGui")
+local Cam   = workspace.CurrentCamera
 
--- 密钥
-local KEYS={
-    ["luihai250"]={Key="LAOMAO-ABC123",Exp=os.time()+7*86400}
+------------------------------------------------
+-- 🔧 配置区（你改这里）
+------------------------------------------------
+local ScriptURL = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/Old%20Cat%20Cheat/Script.lua"
+
+-- 白名单（不区分大小写，自动转小写比对）
+local Whitelist = {
+    ["luihai250"] = true,
+    ["qweasdtbb"] = true,
+    ["admin"]     = true,
 }
-local KD=KEYS[LocalPlayer.Name]
 
--- 工具
-local function Frm(size,pos,bg,parent)
+-- 限时密钥（普通用户用）
+local KEY_DB = {
+    ["luihai250"] = { Key = "LAOMAO-ABC123", Exp = os.time() + 7 * 86400 },
+    -- 可继续加其他普通用户
+}
+
+local MyData = KEY_DB[LP.Name]
+local IsVIP  = Whitelist[string.lower(LP.Name)] == true
+------------------------------------------------
+
+-- // ScreenGui
+local SG = Instance.new("ScreenGui")
+SG.Name = "OldCat_Loader"
+SG.ResetOnSpawn = false
+SG.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+SG.IgnoreGuiInset = true
+pcall(function() SG.Parent = CoreGui end)
+if not SG.Parent then SG.Parent = PG end
+
+------------------------------------------------
+-- 🎨 UI 构件
+------------------------------------------------
+local function Frame(siz,pos,bg,par)
     local f=Instance.new("Frame")
-    f.Size=size f.Position=pos f.BackgroundColor3=bg f.BorderSizePixel=0 f.Parent=parent
+    f.Size=siz f.Position=pos f.BackgroundColor3=bg
+    f.BorderSizePixel=0 f.Parent=par
+    Instance.new("UICorner",f).CornerRadius=UDim.new(0,10)
     return f
 end
-local function Lbl(text,parent,y)
+
+local function Label(txt,par,y,clr)
+    clr=clr or Color3.new(1,1,1)
     local l=Instance.new("TextLabel")
-    l.Size=UDim2.new(1,-40,0,26) l.Position=UDim2.new(0,20,y)
-    l.BackgroundTransparency=1 l.Text=text l.TextColor3=Color3.new(1,1,1)
-    l.Font=Enum.Font.SourceSans l.TextSize=14 l.Parent=parent
+    l.Size=UDim2.new(1,-30,0,28)
+    l.Position=UDim2.new(0,15,y)
+    l.BackgroundTransparency=1 l.Text=txt
+    l.TextColor3=clr l.Font=Enum.Font.SourceSans
+    l.TextSize=14 l.TextXAlignment=Enum.TextXAlignment.Left
+    l.Parent=par
     return l
 end
-local function Sld(parent,y,callback)
-    local f=Frm(UDim2.new(1,-40,0,34),UDim2.new(0,20,y),Color3.fromRGB(35,35,35),parent)
-    local s=false
-    f.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 then
-            s=not s callback(s)
-        end
+
+local function Btn(txt,par,y,cb)
+    local b=Instance.new("TextButton")
+    b.Size=UDim2.new(1,-30,0,36)
+    b.Position=UDim2.new(0,15,y)
+    b.BackgroundColor3=Color3.fromRGB(0,160,255)
+    b.Text=txt b.TextColor3=Color3.new(1,1,1)
+    b.Font=Enum.Font.SourceSansBold b.TextSize=15
+    b.Parent=par
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+    b.MouseButton1Click:Connect(cb)
+    return b
+end
+
+------------------------------------------------
+-- 🪟 主窗口（仿你截图暗黑悬浮）
+------------------------------------------------
+local MF = Frame(UDim2.new(0,400,0,320),UDim2.new(0.5,-200,0.5,-160),
+                 Color3.fromRGB(20,20,20),SG)
+MF.Active=true MF.Draggable=true
+
+-- Logo / 标题
+Label("🐱  Old Cat Cheat  v0.09",MF,12,Color3.fromRGB(0,255,127)).Font=Enum.Font.SourceSansBold
+
+local Info = Label("",MF,50,Color3.fromRGB(200,200,200))
+
+local function LaunchScript()
+    Info.Text="⏳ 正在加载脚本..."
+    Info.TextColor3=Color3.fromRGB(255,255,0)
+    local ok,err=pcall(function()
+        loadstring(game:HttpGet(ScriptURL,true))()
     end)
-    return function()return s end
-end
-
--- KeyFrame
-local kf=Frm(UDim2.new(0,420,0,260),UDim2.new(0.5,-210,0.5,-130),Color3.fromRGB(22,22,22),sg)
-local kb=Instance.new("TextBox")
-kb.Size=UDim2.new(0,260,0,34) kb.Position=UDim2.new(0.5,-130,0.38,0)
-kb.BackgroundColor3=Color3.fromRGB(30,30,30) kb.TextColor3=Color3.new(1,1,1)
-kb.PlaceholderText="请输入密钥" kb.Font=Enum.Font.SourceSans kb.TextSize=14 kb.Parent=kf
-Lbl("🔐 老猫脚本 0.08v",kf,10)
-Lbl("用户："..LocalPlayer.Name,kf,40)
-local st=Lbl("",kf,140)
-
-local function verify()
-    if not KD then st.Text="无权限"return end
-    if os.time()>KD.Exp then st.Text="已过期"return end
-    if kb.Text==KD.Key then kf:Destroy() main() else st.Text="密钥错误" end
-end
-
-local btn=Instance.new("TextButton")
-btn.Size=UDim2.new(0,140,0,34) btn.Position=UDim2.new(0.5,-70,0.72,0)
-btn.BackgroundColor3=Color3.fromRGB(0,160,255) btn.Text="验证"
-btn.TextColor3=Color3.new(1,1,1) btn.Font=Enum.Font.SourceSansBold btn.TextSize=14 btn.Parent=kf
-btn.MouseButton1Click:Connect(verify)
-
--- 主 UI
-function main()
-    local mf=Frm(UDim2.new(0,600,0,420),UDim2.new(0.5,-300,0.5,-210),Color3.fromRGB(20,20,20),sg)
-    local tl=Frm(UDim2.new(0,130,1,-46),UDim2.new(0,0,0,46),Color3.fromRGB(25,25,25),mf)
-    local ct=Frm(UDim2.new(1,-130,1,-46),UDim2.new(0,130,0,46),Color3.fromRGB(15,15,15),mf)
-
-    local function Tab(name)
-        local b=Instance.new("TextButton")
-        b.Size=UDim2.new(1,-10,0,32) b.Position=UDim2.new(0,5,#tl:GetChildren()*36)
-        b.BackgroundColor3=Color3.fromRGB(40,40,40) b.Text=name
-        b.TextColor3=Color3.new(1,1,1) b.Font=Enum.Font.SourceSans b.TextSize=14 b.Parent=tl
-        local p=Frm(UDim2.new(1,0,1,0),UDim2.new(0,0,0,0),Color3.fromRGB(15,15,15),ct)
-        p.Visible=false
-        b.MouseButton1Click:Connect(function()
-            for _,v in ipairs(ct:GetChildren())do if v:IsA("Frame")then v.Visible=false end end
-            p.Visible=true
-        end)
-        return p
+    if ok then
+        Info.Text="✅  注入成功！"
+        Info.TextColor3=Color3.fromRGB(0,255,100)
+        task.wait(1.5)
+        SG:Destroy()
+    else
+        Info.Text="❌  加载失败:\n"..tostring(err)
+        Info.TextColor3=Color3.fromRGB(255,60,60)
     end
-
-    local cm=Tab("🎯 战斗") local pl=Tab("🎮 玩家") local hm=Tab("🏠 主页")
-    hm.Visible=true
-
-    -- 主页
-    Lbl("用户："..LocalPlayer.Name,hm,20)
-    local rem=KD.Exp-os.time()
-    Lbl("剩余："..math.floor(rem/86400).."天",hm,50)
-
-    -- 战斗
-    Sld(cm,20,function(s)
-        if s then
-            RunService.RenderStepped:Connect(function()
-                local r=workspace:Raycast(Camera.CFrame.Position,Camera.CFrame.LookVector*1000)
-                if r then pcall(function() mouse1click()end) end
-            end)
-        end
-    end)
-
-    -- 玩家
-    Sld(pl,20,function(s) end) -- 飞行预留
-    print("✅ 老猫脚本 0.08v 已加载")
 end
 
-print("✅ Loader 0.08v by qweasdtbb")
+------------------------------------------------
+-- 👑 VIP / 白名单 → 免密钥
+------------------------------------------------
+if IsVIP then
+    Info.Text="👑  欢迎 "..LP.Name.."（免密钥模式）"
+    Info.TextColor3=Color3.fromRGB(0,200,255)
+    Btn("🚀  启动脚本",MF,90,LaunchScript)
+
+------------------------------------------------
+-- 🔐 普通用户 → 密钥验证
+------------------------------------------------
+else
+    Info.Text="请输入你的专属密钥"
+    Info.TextColor3=Color3.fromRGB(200,200,200)
+
+    local KB=Instance.new("TextBox")
+    KB.Size=UDim2.new(1,-30,0,34)
+    KB.Position=UDim2.new(0,15,0,95)
+    KB.BackgroundColor3=Color3.fromRGB(35,35,35)
+    KB.TextColor3=Color3.new(1,1,1)
+    KB.PlaceholderText="LAOMAO-XXXXXX"
+    KB.Font=Enum.Font.SourceSans KB.TextSize=14 KB.Parent=MF
+    Instance.new("UICorner",KB).CornerRadius=UDim.new(0,8)
+
+    local ErrLbl=Label("",MF,138,Color3.fromRGB(255,80,80))
+
+    Btn("🔓  验证 & 启动",MF,170,function()
+        if not MyData then
+            ErrLbl.Text="❌  此账号未分配密钥"
+            return
+        end
+        if os.time()>MyData.Exp then
+            ErrLbl.Text="❌  密钥已过期，联系老猫"
+            return
+        end
+        if KB.Text==MyData.Key then
+            LaunchScript()
+        else
+            ErrLbl.Text="❌  密钥错误"
+        end
+    end)
+end
+
+print("✅ Old Cat Loader v0.09 loaded for "..LP.Name)
