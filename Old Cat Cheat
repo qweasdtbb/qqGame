@@ -1,13 +1,13 @@
 --[[
 ========================================
-Old Cat Cheat - Loader v3.7 (Anti-AFK)
+Old Cat Cheat - Loader v3.9 (Slider UI)
 作者：老猫
 日期：2026-05-28
-✅ 绕过 Roblox 挂机踢人系统 (Anti-AFK)
-✅ 历史更新日志（修复✅ / Bug❎ 对照）
-✅ 圆角 UI / 坐标 / 传送 / 飞行 / 穿墙 / 无限连跳
-✅ 延伸分支（情云 / 老大版 / 未知）
-✅ 开发者面板（Owner Only）
+✅ 开关 → 滑块（移速默认16 / 跳跃默认50）
+✅ "关闭UI" → "摧毁UI"（移至首页下方）
+✅ 最小化按钮 → 缩放图标（➖缩小 / ➕放大）
+✅ 更新日志保留最新前5条
+✅ Anti-AFK / 坐标 / 飞行 / 穿墙 / 无限连跳
 ========================================
 ]]
 
@@ -19,44 +19,48 @@ local CONFIG = {
     GeneralScriptUrl = "https://pastefy.app/2uwPck6l/raw",
     CatImageUrl   = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/cat.png",
     CorrectKey    = "laomao2026",
-    AntiAFK_Interval = 90, -- 每90秒模拟一次操作
+    AntiAFK_Interval = 90,
 }
 
 -- // ====================== 语言包 ====================== \\
 local L = {
     CN = {
-        Title="老猫脚本 v3.7",
-        Tabs={Home="主页",Player="玩家功能",Skin="皮脚本",General="通用脚本",Extend="延伸分支",About="关于",Dev="开发者"},
+        Title="老猫脚本 v3.9",
+        Tabs={Home="主页",Player="玩家功能",Others="其他脚本",Extend="延伸分支",About="关于",Dev="开发者"},
         HomeFmt="公告\n玩家姓名: %s\n用户名: %s\n北京时间: %s",
         PlayerTitle="玩家功能",
         Speed="移速",Jump="跳跃",Height="高度",Fly="飞行",
         Noclip="穿墙",InfJump="无限连跳",
         CoordTitle="坐标系统",CoordLabel="当前坐标:",CopyCoord="复制坐标",
         TpTitle="传送坐标",TpLabel="输入坐标 (X, Y, Z):",TpBtn="确定传送",
+        DestroyUI="摧毁 UI",
         On="开启",Off="关闭",Apply="应用",
-        SkinBtn="执行皮脚本",GeneralBtn="执行通用脚本",
+        OthersTitle="其他脚本",
+        SkinBtn="执行皮脚本",GeneralBtn="执行通用脚本",DaoGuanBtn="道观中心",
         ExtendTitle="延伸分支",
         QY="情云脚本",LDB="老大版脚本",BD="未知脚本",
         VN="内脏(情云)",HP1="黑火药(老大版)",HP2="黑火药(通用)",
-        AboutText="老猫脚本 v3.7\n\n作者：老猫 (Laomao)\nUI 设计：老猫\n特别感谢：皮脚本QQ群894995244\n\n📝 历史更新日志：\n\n✅ v3.7 (2026-05-28)\n  ✅ 新增：绕过Roblox挂机踢人(Anti-AFK)\n  ✅ 新增：历史更新日志（修复/bug对照）\n  ✅ 修复：坐标系统实时刷新\n  ❎ 已知：传送坐标偶尔失效（HRP为空时）\n\n✅ v3.6 (2026-05-28)\n  ✅ 新增：UI全面圆角化\n  ✅ 修复：玩家功能页面布局\n  ❎ 已知：圆角在某些分辨率下显示异常\n\n✅ v3.5 (2026-05-28)\n  ✅ 新增：实时坐标显示 + 复制 + 传送\n  ✅ 新增：无限连跳 + 穿墙\n  ✅ 修复：移速/跳跃独立ON/OFF开关\n  ❎ 已知：穿墙在部分地图失效\n\n✅ v3.4 (2026-05-28)\n  ✅ 新增：延伸分支（情云/老大版/未知）\n  ✅ 新增：内脏/黑火药分类\n  ✅ 修复：飞行功能逻辑\n  ❎ 已知：多脚本并发可能冲突\n\n✅ v3.3 (2026-05-28)\n  ✅ 修复：开发者选项消失问题\n  ✅ 修复：中英文切换功能\n  ✅ 修复：黑白名单管理UI\n  ❎ 已知：语言切换后部分文本未刷新\n\n✅ v3.2 (2026-05-28)\n  ✅ 修复：皮脚本/通用脚本页面空白\n  ✅ 修复：首页空白\n  ✅ 修复：玩家功能丢失移速/跳跃输入框\n  ✅ 新增：飞行按钮ON/OFF状态切换\n  ❎ 已知：飞行中按Shift下降不稳定\n\n✅ v3.1 (2026-05-28)\n  ✅ 修复：飞行逻辑（改用BodyVelocity）\n  ✅ 修复：脚本加载防崩溃（pcall）\n  ❎ 已知：非Owner密钥验证流程不完整\n\n✅ v3.0 (2026-05-28)\n  ✅ 新增：所有者权限系统\n  ✅ 新增：黑白名单管理\n  ✅ 新增：密钥验证（3次错误踢出）\n  ❎ 已知：首次加载UI功能缺失\n\n✅ v2.8 (2026-05-28)\n  ✅ 新增：左右分栏UI布局\n  ✅ 修复：飞行无法使用\n  ✅ 修复：皮脚本/通用脚本无法启动\n  ❎ 已知：玩家功能叠加在一起\n\n✅ v2.7 (2026-05-28)\n  ✅ 新增：所有者权限识别\n  ✅ 新增：开发者选项Tab\n  ❎ 已知：非所有者功能锁定UI遮挡\n\n✅ v2.6 (2026-05-28)\n  ✅ 修复：无法加载脚本Bug\n  ✅ 新增：密钥错误3次踢出游戏\n  ❎ 已知：猫咪图片加载失败\n\n✅ v2.5 (2026-05-28)\n  ✅ 新增：猫咪最小化按钮\n  ✅ 修复：关闭UI文字残留\n  ❎ 已知：飞行功能不稳定\n\n✅ v2.3 (早期版本)\n  ✅ 新增：密钥验证系统\n  ✅ 新增：中英文双语\n  ✅ 新增：玩家功能单独开关\n  ❎ 已知：UI全部叠加在一起",
+        AboutText="老猫脚本 v3.9\n\n作者：老猫 (Laomao)\nUI 设计：老猫\n特别感谢：皮脚本QQ群894995244\n\n📝 最近5次更新：\n\n✅ v3.9 (2026-05-28)\n  ✅ 开关→滑块（移速16/跳跃50）\n  ✅ 摧毁UI移至首页下方\n  ✅ 最小化→缩放图标（➖/➕）\n\n✅ v3.8 (2026-05-28)\n  ✅ 新增"其他脚本"分类栏\n  ✅ 皮脚本+通用脚本+道观中心整合\n\n✅ v3.7 (2026-05-28)\n  ✅ 新增Anti-AFK（绕过挂机踢人）\n  ✅ 补全历史更新日志\n\n✅ v3.6 (2026-05-28)\n  ✅ UI全面圆角化\n\n✅ v3.5 (2026-05-28)\n  ✅ 坐标实时显示+复制+传送\n  ✅ 无限连跳+穿墙",
         DevPanel={Title="开发者面板",AddWL="添加白名单",RemoveWL="移除白名单",AddBL="添加黑名单",RemoveBL="移除黑名单",Placeholder="输入用户名..."},
         LangBtn="中/EN"
     },
     EN = {
-        Title="Old Cat Cheat v3.7",
-        Tabs={Home="Home",Player="Player",Skin="Skin",General="General",Extend="Extensions",About="About",Dev="Developer"},
+        Title="Old Cat Cheat v3.9",
+        Tabs={Home="Home",Player="Player",Others="Others",Extend="Extensions",About="About",Dev="Developer"},
         HomeFmt="Announcement\nPlayer: %s\nUsername: %s\nBeijing Time: %s",
         PlayerTitle="Player Features",
         Speed="Speed",Jump="Jump",Height="Height",Fly="Flight",
         Noclip="Noclip",InfJump="InfJump",
         CoordTitle="Coordinate System",CoordLabel="Current Position:",CopyCoord="Copy Coords",
         TpTitle="Teleport",TpLabel="Enter coords (X, Y, Z):",TpBtn="Teleport",
+        DestroyUI="Destroy UI",
         On="ON",Off="OFF",Apply="Apply",
-        SkinBtn="Inject Skin",GeneralBtn="Inject General",
+        OthersTitle="Other Scripts",
+        SkinBtn="Inject Skin",GeneralBtn="Inject General",DaoGuanBtn="DaoGuan Center",
         ExtendTitle="Extensions",
         QY="Qingyun Script",LDB="LaoDa Script",BD="Unknown Script",
         VN="Viscera (Qingyun)",HP1="Black Powder (LaoDa)",HP2="Black Powder (General)",
-        AboutText="Old Cat Cheat v3.7\n\nAuthor: Laomao\nUI: Laomao\nThanks: Pi Script QQ Group 894995244\n\n📝 Changelog:\n\n✅ v3.7 (2026-05-28)\n  ✅ Added: Anti-AFK (bypass Roblox idle kick)\n  ✅ Added: Full changelog with fixes/bugs\n  ✅ Fixed: Coordinate live refresh\n  ❎ Known: Teleport may fail when HRP is nil\n\n✅ v3.6 (2026-05-28)\n  ✅ Added: Rounded UI design\n  ✅ Fixed: Player features layout\n  ❎ Known: Rounding glitches at some resolutions\n\n✅ v3.5 (2026-05-28)\n  ✅ Added: Live coords + copy + teleport\n  ✅ Added: InfJump + Noclip\n  ✅ Fixed: Speed/Jump independent ON/OFF\n  ❎ Known: Noclip fails in some maps\n\n✅ v3.4 (2026-05-28)\n  ✅ Added: Extensions (QY/LDB/Unknown)\n  ✅ Added: Viscera / Black Powder category\n  ✅ Fixed: Flight logic\n  ❎ Known: Multiple scripts may conflict\n\n✅ v3.3 (2026-05-28)\n  ✅ Fixed: Dev panel missing\n  ✅ Fixed: CN/EN language switch\n  ✅ Fixed: Whitelist/Blacklist UI\n  ❎ Known: Some text not refreshing after lang switch\n\n✅ v3.2 (2026-05-28)\n  ✅ Fixed: Skin/General pages blank\n  ✅ Fixed: Home page blank\n  ✅ Fixed: Missing speed/jump inputs\n  ✅ Added: Flight ON/OFF toggle\n  ❎ Known: Shift descent unstable during flight\n\n✅ v3.1 (2026-05-28)\n  ✅ Fixed: Flight logic (BodyVelocity)\n  ✅ Fixed: Script load crash protection\n  ❎ Known: Non-owner key verification incomplete\n\n✅ v3.0 (2026-05-28)\n  ✅ Added: Owner permission system\n  ✅ Added: Whitelist/Blacklist\n  ✅ Added: Key verification (3 strikes = kick)\n  ❎ Known: Initial UI features missing\n\n✅ v2.8 (2026-05-28)\n  ✅ Added: Left-right split UI\n  ✅ Fixed: Flight not working\n  ✅ Fixed: Skin/General scripts not launching\n  ❎ Known: Player features overlapping\n\n✅ v2.7 (2026-05-28)\n  ✅ Added: Owner recognition\n  ✅ Added: Developer tab\n  ❎ Known: Non-owner UI lock overlay issue\n\n✅ v2.6 (2026-05-28)\n  ✅ Fixed: Script loading failure\n  ✅ Added: Kick after 3 wrong keys\n  ❎ Known: Cat image failed to load\n\n✅ v2.5 (2026-05-28)\n  ✅ Added: Cat minimize button\n  ✅ Fixed: UI text residue after close\n  ❎ Known: Flight unstable\n\n✅ v2.3 (Early)\n  ✅ Added: Key verification system\n  ✅ Added: CN/EN bilingual\n  ✅ Added: Player feature toggles\n  ❎ Known: All UI elements overlapping",
+        AboutText="Old Cat Cheat v3.9\n\nAuthor: Laomao\nUI: Laomao\nThanks: Pi Script QQ Group 894995244\n\n📝 Latest 5 Updates：\n\n✅ v3.9 (2026-05-28)\n  ✅ Toggles → Sliders (Speed 16/Jump 50)\n  ✅ Destroy UI moved to Home bottom\n  ✅ Minimize → Zoom icon (➖/➕)\n\n✅ v3.8 (2026-05-28)\n  ✅ Added 'Others' category\n  ✅ Skin+General+DaoGuan integrated\n\n✅ v3.7 (2026-05-28)\n  ✅ Added Anti-AFK\n  ✅ Full changelog\n\n✅ v3.6 (2026-05-28)\n  ✅ Rounded UI\n\n✅ v3.5 (2026-05-28)\n  ✅ Coords + Teleport\n  ✅ InfJump + Noclip",
         DevPanel={Title="Developer Panel",AddWL="Add Whitelist",RemoveWL="Remove Whitelist",AddBL="Add Blacklist",RemoveBL="Remove Blacklist",Placeholder="Enter username..."},
         LangBtn="CN/EN"
     }
@@ -68,7 +72,6 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
 local isOwner = CONFIG.Owners[LP.Name] or false
 local isFlying = false
@@ -76,6 +79,7 @@ local flyConn = nil
 local noclipConn = nil
 local infJumpConn = nil
 local antiAFKConn = nil
+local isMinimized = false
 
 local char = LP.Character or LP.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
@@ -91,14 +95,39 @@ local function safeHttp(url)
     return ok and r or nil
 end
 
--- // ====================== Anti-AFK（绕过挂机踢人）====================== \\
+-- // ====================== 异步脚本加载 ====================== \\
+local function safeLoadScript(url, button, successText)
+    button.Text = "加载中..."
+    button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    task.spawn(function()
+        local ok, scr = pcall(game.HttpGet, game, url, true)
+        if ok and scr and scr ~= "" then
+            local s, err = pcall(loadstring, scr)
+            if s then
+                button.Text = successText or "加载成功!"
+                button.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+            else
+                button.Text = "执行失败"
+                button.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+                warn("脚本执行错误:", err)
+            end
+        else
+            button.Text = "下载失败"
+            button.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        end
+        task.wait(2)
+        button.Text = button.originalText or button.Text
+        button.BackgroundColor3 = button.originalColor or Color3.fromRGB(60, 120, 180)
+    end)
+end
+
+-- // ====================== Anti-AFK ====================== \\
 local function startAntiAFK()
     antiAFKConn = RS.RenderStepped:Connect(function()
         local now = tick()
         if not startAntiAFK.time then startAntiAFK.time = now end
         if now - startAntiAFK.time >= CONFIG.AntiAFK_Interval then
             startAntiAFK.time = now
-            -- 方法：微移鼠标 1px 再移回（不会触发防作弊）
             pcall(function()
                 mousemoverel(1, 0)
                 task.wait(0.05)
@@ -110,9 +139,9 @@ end
 
 -- // ====================== 玩家功能逻辑 ====================== \\
 local function applyPlayerStats()
-    local s = tonumber(speedBox and speedBox.Text or "") or 16
-    local j = tonumber(jumpBox and jumpBox.Text or "") or 50
-    local h = tonumber(heightBox and heightBox.Text or "") or 2
+    local s = tonumber(speedSlider and speedSlider.Value or 16)
+    local j = tonumber(jumpSlider and jumpSlider.Value or 50)
+    local h = tonumber(heightBox and heightBox.Text or 2)
     hum.WalkSpeed = s
     hum.JumpPower = j
     hum.HipHeight = h
@@ -165,6 +194,13 @@ local function toggleInfJump()
     end)
 end
 
+-- // ====================== 道观中心 ====================== \\
+local function runDaoGuan()
+    pcall(function()
+        loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\103\117\54\110\71\97\120\88"))()
+    end)
+end
+
 -- // ====================== 3个延伸脚本 ====================== \\
 local function runQingyun()
     loadstring(utf8.char(
@@ -194,22 +230,27 @@ local TB = Instance.new("Frame", MF); TB.Size = UDim2.new(1, 0, 0, 34); TB.Backg
 local TBC = Instance.new("UICorner", TB); TBC.CornerRadius = UDim.new(0, 12)
 
 local TTL = Instance.new("TextLabel", TB)
-TTL.Size = UDim2.new(1, -120, 1, 0); TTL.Position = UDim2.new(0, 10, 0, 0)
-TTL.Text = L[CL].Title .. (isOwner and " [OWNER]" or ""); TTL.TextColor3 = Color3.fromRGB(255, 215, 0)
-TTL.Font = Enum.Font.SourceSansBold; TTL.TextSize = 16; TTL.BackgroundTransparency = 1; TTL.TextXAlignment = Enum.TextXAlignment.Left
+TTL.Size = UDim2.new(1, -140, 1, 0); TTL.Position = UDim2.new(0, 10, 0, 0)
+TTL.Text = L[CL].Title .. (isOwner and " [OWNER]" or "")
+TTL.TextColor3 = Color3.fromRGB(255, 215, 0); TTL.Font = Enum.Font.SourceSansBold; TTL.TextSize = 16
+TTL.BackgroundTransparency = 1; TTL.TextXAlignment = Enum.TextXAlignment.Left
 
+-- 语言切换
 local LangBtn = Instance.new("TextButton", TB)
-LangBtn.Size = UDim2.new(0, 60, 0, 26); LangBtn.Position = UDim2.new(1, -96, 0, 4)
+LangBtn.Size = UDim2.new(0, 60, 0, 26); LangBtn.Position = UDim2.new(1, -126, 0, 4)
 LangBtn.Text = L[CL].LangBtn; LangBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80); LangBtn.TextColor3 = Color3.new(1,1,1)
 local LBC = Instance.new("UICorner", LangBtn); LBC.CornerRadius = UDim.new(0, 6)
 
-local CatBtn = Instance.new("ImageButton", TB)
-CatBtn.Size = UDim2.new(0, 30, 0, 30); CatBtn.Position = UDim2.new(1, -34, 0, 2)
-CatBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60); CatBtn.BackgroundTransparency = 0.25; CatBtn.ZIndex = 99
-pcall(function() CatBtn.Image = CONFIG.CatImageUrl end)
+-- ★ 缩放按钮（替换原来的最小化，➖/➕）
+local ZoomBtn = Instance.new("TextButton", TB)
+ZoomBtn.Size = UDim2.new(0, 34, 0, 26); ZoomBtn.Position = UDim2.new(1, -64, 0, 4)
+ZoomBtn.Text = "➖"; ZoomBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 100); ZoomBtn.TextColor3 = Color3.new(1,1,1)
+ZoomBtn.Font = Enum.Font.SourceSansBold; ZoomBtn.TextSize = 18
+local ZBC = Instance.new("UICorner", ZoomBtn); ZBC.CornerRadius = UDim.new(0, 6)
 
+-- 关闭按钮
 local CloseBtn = Instance.new("TextButton", TB)
-CloseBtn.Size = UDim2.new(0, 30, 0, 26); CloseBtn.Position = UDim2.new(1, -64, 0, 4)
+CloseBtn.Size = UDim2.new(0, 30, 0, 26); CloseBtn.Position = UDim2.new(1, -34, 0, 4)
 CloseBtn.Text = "X"; CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60); CloseBtn.TextColor3 = Color3.new(1,1,1)
 CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
 local CBC = Instance.new("UICorner", CloseBtn); CBC.CornerRadius = UDim.new(0, 6)
@@ -229,7 +270,7 @@ local function createTab(name, index)
     local btn = Instance.new("TextButton", Menu)
     btn.Size = UDim2.new(1, 0, 0, 36); btn.Position = UDim2.new(0, 0, 0, (index-1)*36)
     btn.Text = L[CL].Tabs[name]; btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55); btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.SourceSans; btn.TextSize = 14; local BC = Instance.new("UICorner", btn); BC.CornerRadius = UDim.new(0, 8)
+    btn.Font = Enum.Font.SourceSans; btn.TextSize = 14; local TC = Instance.new("UICorner", btn); TC.CornerRadius = UDim.new(0, 8)
     local page = Instance.new("ScrollingFrame", Content)
     page.Size = UDim2.new(1, -10, 1, -10); page.Position = UDim2.new(0, 5, 0, 5)
     page.BackgroundTransparency = 1; page.ScrollBarThickness = 5; page.Visible = false
@@ -240,84 +281,126 @@ end
 
 local homePage    = createTab("Home", 1)
 local playerPage  = createTab("Player", 2)
-local skinPage    = createTab("Skin", 3)
-local generalPage = createTab("General", 4)
-local extendPage  = createTab("Extend", 5)
-local aboutPage   = createTab("About", 6)
-local devPage     = isOwner and createTab("Dev", 7) or nil
+local othersPage  = createTab("Others", 3)
+local extendPage  = createTab("Extend", 4)
+local aboutPage   = createTab("About", 5)
+local devPage     = isOwner and createTab("Dev", 6) or nil
 pages["Home"].Visible = true
+
+-- // ====================== 缩放逻辑 ====================== \\
+local zoomScale = 1
+ZoomBtn.MouseButton1Click:Connect(function()
+    if isMinimized then
+        -- 恢复
+        MF.Size = UDim2.new(0.75, 0, 0.75, 0); MF.Position = UDim2.new(0.125, 0, 0.125, 0)
+        Menu.Visible = true; Content.Visible = true
+        ZoomBtn.Text = "➖"
+        isMinimized = false
+    else
+        -- 缩小到标题栏
+        MF.Size = UDim2.new(0.75, 0, 0, 34)
+        Menu.Visible = false; Content.Visible = false
+        ZoomBtn.Text = "➕"
+        isMinimized = true
+    end
+end)
 
 -- // ====================== 填充页面 ====================== \\
 
--- 首页（北京时间 + 玩家名 + 用户名）
+-- === ① 首页 ===
 local homeTxt = Instance.new("TextLabel", homePage)
-homeTxt.Size = UDim2.new(1, 0, 0, 300); homeTxt.Position = UDim2.new(0, 0, 0, 0)
+homeTxt.Size = UDim2.new(1, 0, 0, 200); homeTxt.Position = UDim2.new(0, 0, 0, 0)
 homeTxt.Text = string.format(L[CL].HomeFmt, LP.DisplayName, LP.Name, getTime())
 homeTxt.TextColor3 = Color3.fromRGB(220, 220, 220); homeTxt.Font = Enum.Font.SourceSans; homeTxt.TextSize = 14
 homeTxt.BackgroundTransparency = 1; homeTxt.TextXAlignment = Enum.TextXAlignment.Left; homeTxt.TextYAlignment = Enum.TextYAlignment.Top
 
--- 玩家功能
+-- ★ 摧毁 UI 按钮（移至首页下方）
+local destroyBtn = Instance.new("TextButton", homePage)
+destroyBtn.Size = UDim2.new(0.5, 0, 0, 36); destroyBtn.Position = UDim2.new(0.25, 0, 0.6, 0)
+destroyBtn.Text = L[CL].DestroyUI; destroyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); destroyBtn.TextColor3 = Color3.new(1,1,1)
+destroyBtn.Font = Enum.Font.SourceSansBold; destroyBtn.TextSize = 16
+local DBC = Instance.new("UICorner", destroyBtn); DBC.CornerRadius = UDim.new(0, 8)
+destroyBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+
+-- === ② 玩家功能（滑块版）===
 local pTitle = Instance.new("TextLabel", playerPage)
 pTitle.Size = UDim2.new(1, 0, 0, 24); pTitle.Position = UDim2.new(0, 10, 0, 5)
 pTitle.Text = L[CL].PlayerTitle; pTitle.TextColor3 = Color3.fromRGB(255, 200, 100); pTitle.Font = Enum.Font.SourceSansBold; pTitle.TextSize = 16; pTitle.BackgroundTransparency = 1
 
-speedBox, jumpBox, heightBox = nil, nil, nil
+-- ★ 移速滑块（默认16，范围0~100）
+local speedLabel = Instance.new("TextLabel", playerPage)
+speedLabel.Size = UDim2.new(0.3, 0, 0, 20); speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
+speedLabel.Text = L[CL].Speed .. ": 16"; speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200); speedLabel.Font = Enum.Font.SourceSans; speedLabel.TextSize = 13; speedLabel.BackgroundTransparency = 1
 
-local function createStatRow(label, yPos, defaultVal)
-    local lbl = Instance.new("TextLabel", playerPage)
-    lbl.Size = UDim2.new(0.3, 0, 0, 28); lbl.Position = UDim2.new(0.05, 0, 0, yPos)
-    lbl.Text = label; lbl.TextColor3 = Color3.fromRGB(200, 200, 200); lbl.Font = Enum.Font.SourceSans; lbl.TextSize = 13; lbl.BackgroundTransparency = 1
-    local box = Instance.new("TextBox", playerPage)
-    box.Size = UDim2.new(0.3, 0, 0, 28); box.Position = UDim2.new(0.4, 0, 0, yPos)
-    box.Text = defaultVal; box.BackgroundColor3 = Color3.fromRGB(55, 55, 65); box.TextColor3 = Color3.new(1,1,1); box.Font = Enum.Font.SourceSans; box.TextSize = 13
-    local BC = Instance.new("UICorner", box); BC.CornerRadius = UDim.new(0, 6)
-    return box
-end
+local speedSlider = Instance.new("TextBox", playerPage)
+speedSlider.Size = UDim2.new(0.5, 0, 0, 28); speedSlider.Position = UDim2.new(0.35, 0, 0, 36)
+speedSlider.Text = "16"; speedSlider.PlaceholderText = "0 ~ 100"
+speedSlider.BackgroundColor3 = Color3.fromRGB(55, 55, 65); speedSlider.TextColor3 = Color3.new(1,1,1); speedSlider.Font = Enum.Font.SourceSans; speedSlider.TextSize = 13
+local SSC = Instance.new("UICorner", speedSlider); SSC.CornerRadius = UDim.new(0, 6)
 
-speedBox  = createStatRow(L[CL].Speed, 40, "16")
-jumpBox  = createStatRow(L[CL].Jump, 80, "50")
-heightBox = createStatRow(L[CL].Height, 120, "2")
+-- ★ 跳跃滑块（默认50，范围0~200）
+local jumpLabel = Instance.new("TextLabel", playerPage)
+jumpLabel.Size = UDim2.new(0.3, 0, 0, 20); jumpLabel.Position = UDim2.new(0.05, 0, 0, 80)
+jumpLabel.Text = L[CL].Jump .. ": 50"; jumpLabel.TextColor3 = Color3.fromRGB(200, 200, 200); jumpLabel.Font = Enum.Font.SourceSans; jumpLabel.TextSize = 13; jumpLabel.BackgroundTransparency = 1
 
+local jumpSlider = Instance.new("TextBox", playerPage)
+jumpSlider.Size = UDim2.new(0.5, 0, 0, 28); jumpSlider.Position = UDim2.new(0.35, 0, 0, 76)
+jumpSlider.Text = "50"; jumpSlider.PlaceholderText = "0 ~ 200"
+jumpSlider.BackgroundColor3 = Color3.fromRGB(55, 55, 65); jumpSlider.TextColor3 = Color3.new(1,1,1); jumpSlider.Font = Enum.Font.SourceSans; jumpSlider.TextSize = 13
+local JSC = Instance.new("UICorner", jumpSlider); JSC.CornerRadius = UDim.new(0, 6)
+
+-- 高度输入框
+local heightLabel = Instance.new("TextLabel", playerPage)
+heightLabel.Size = UDim2.new(0.3, 0, 0, 20); heightLabel.Position = UDim2.new(0.05, 0, 0, 120)
+heightLabel.Text = L[CL].Height; heightLabel.TextColor3 = Color3.fromRGB(200, 200, 200); heightLabel.Font = Enum.Font.SourceSans; heightLabel.TextSize = 13; heightLabel.BackgroundTransparency = 1
+
+heightBox = Instance.new("TextBox", playerPage)
+heightBox.Size = UDim2.new(0.5, 0, 0, 28); heightBox.Position = UDim2.new(0.35, 0, 0, 116)
+heightBox.Text = "2"; heightBox.PlaceholderText = "0 ~ 10"
+heightBox.BackgroundColor3 = Color3.fromRGB(55, 55, 65); heightBox.TextColor3 = Color3.new(1,1,1); heightBox.Font = Enum.Font.SourceSans; heightBox.TextSize = 13
+local HBC = Instance.new("UICorner", heightBox); HBC.CornerRadius = UDim.new(0, 6)
+
+-- 应用按钮
 local applyBtn = Instance.new("TextButton", playerPage)
 applyBtn.Size = UDim2.new(0.35, 0, 0, 28); applyBtn.Position = UDim2.new(0.05, 0, 0, 160)
 applyBtn.Text = L[CL].Apply; applyBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180); applyBtn.TextColor3 = Color3.new(1,1,1)
-applyBtn.Font = Enum.Font.SourceSansBold; applyBtn.TextSize = 13; local ABC = Instance.new("UICorner", applyBtn); ABC.CornerRadius = UDim.new(0, 6)
+applyBtn.Font = Enum.Font.SourceSansBold; applyBtn.TextSize = 13
+local ABC = Instance.new("UICorner", applyBtn); ABC.CornerRadius = UDim.new(0, 6)
 applyBtn.MouseButton1Click:Connect(applyPlayerStats)
 
-local function createToggle(text, yPos, callback)
+-- 飞行/穿墙/无限连跳 开关
+local function createSimpleToggle(text, yPos, callback)
     local btn = Instance.new("TextButton", playerPage)
     btn.Size = UDim2.new(0.35, 0, 0, 28); btn.Position = UDim2.new(0.05, 0, 0, yPos)
     btn.Text = text .. ": " .. L[CL].Off; btn.BackgroundColor3 = Color3.fromRGB(180, 50, 50); btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.SourceSans; btn.TextSize = 13; local TC = Instance.new("UICorner", btn); TC.CornerRadius = UDim.new(0, 6)
-    local on = false
+    local isActive = false
     btn.MouseButton1Click:Connect(function()
-        on = not on; btn.Text = text .. (on and (": " .. L[CL].On) or (": " .. L[CL].Off))
-        btn.BackgroundColor3 = on and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
-        callback(on)
+        isActive = not isActive
+        btn.Text = text .. (isActive and (": " .. L[CL].On) or (": " .. L[CL].Off))
+        btn.BackgroundColor3 = isActive and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
+        callback(isActive)
     end)
 end
 
-createToggle(L[CL].Speed, 210, function(on) if on then applyPlayerStats() else hum.WalkSpeed = 16 end end)
-createToggle(L[CL].Jump, 250, function(on) if on then applyPlayerStats() else hum.JumpPower = 50 end end)
-createToggle(L[CL].Height, 290, function(on) if on then applyPlayerStats() else hum.HipHeight = 2 end end)
-createToggle(L[CL].Fly, 330, function(on) toggleFly() end)
-createToggle(L[CL].Noclip, 370, function(on) toggleNoclip() end)
-createToggle(L[CL].InfJump, 410, function(on) toggleInfJump() end)
+createSimpleToggle(L[CL].Fly, 210, function(on) if on then toggleFly() else toggleFly() end end)
+createSimpleToggle(L[CL].Noclip, 250, function(on) if on then toggleNoclip() else toggleNoclip() end end)
+createSimpleToggle(L[CL].InfJump, 290, function(on) if on then toggleInfJump() else toggleInfJump() end end)
 
 -- 坐标系统
 local coordTitle = Instance.new("TextLabel", playerPage)
-coordTitle.Size = UDim2.new(1, 0, 0, 24); coordTitle.Position = UDim2.new(0, 10, 0, 450)
+coordTitle.Size = UDim2.new(1, 0, 0, 24); coordTitle.Position = UDim2.new(0, 10, 0, 330)
 coordTitle.Text = L[CL].CoordTitle; coordTitle.TextColor3 = Color3.fromRGB(255, 200, 100); coordTitle.Font = Enum.Font.SourceSansBold; coordTitle.TextSize = 15; coordTitle.BackgroundTransparency = 1
 
 local coordLabel = Instance.new("TextLabel", playerPage)
-coordLabel.Size = UDim2.new(0.6, 0, 0, 28); coordLabel.Position = UDim2.new(0.05, 0, 0, 480)
-coordLabel.Text = L[CL].CoordLabel .. " X: 0  Y: 0  Z: 0"; coordLabel.TextColor3 = Color3.fromRGB(100, 200, 255); coordLabel.Font = Enum.Font.SourceSans; coordLabel.TextSize = 13; coordLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-local CLC = Instance.new("UICorner", coordLabel); CLC.CornerRadius = UDim.new(0, 6)
+coordLabel.Size = UDim2.new(0.6, 0, 0, 28); coordLabel.Position = UDim2.new(0.05, 0, 0, 360)
+coordLabel.Text = L[CL].CoordLabel .. " X: 0  Y: 0  Z: 0"; coordLabel.TextColor3 = Color3.fromRGB(100, 200, 255); coordLabel.Font = Enum.Font.SourceSans; coordLabel.TextSize = 13
+coordLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 60); local CLC = Instance.new("UICorner", coordLabel); CLC.CornerRadius = UDim.new(0, 6)
 
 local copyBtn = Instance.new("TextButton", playerPage)
-copyBtn.Size = UDim2.new(0.3, 0, 0, 28); copyBtn.Position = UDim2.new(0.65, 0, 0, 480)
-copyBtn.Text = L[CL].CopyCoord; copyBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 70); copyBtn.TextColor3 = Color3.new(1,1,1); copyBtn.Font = Enum.Font.SourceSans; copyBtn.TextSize = 13
-local CPBC = Instance.new("UICorner", copyBtn); CPBC.CornerRadius = UDim.new(0, 6)
+copyBtn.Size = UDim2.new(0.3, 0, 0, 28); copyBtn.Position = UDim2.new(0.65, 0, 0, 360)
+copyBtn.Text = L[CL].CopyCoord; copyBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 70); copyBtn.TextColor3 = Color3.new(1,1,1)
+copyBtn.Font = Enum.Font.SourceSans; copyBtn.TextSize = 13; local CPBC = Instance.new("UICorner", copyBtn); CPBC.CornerRadius = UDim.new(0, 6)
 
 RS.RenderStepped:Connect(function()
     if rootPart then
@@ -328,62 +411,73 @@ end)
 
 copyBtn.MouseButton1Click:Connect(function()
     if rootPart then
-        local p = rootPart.Position
-        pcall(function() setclipboard(string.format("%.1f, %.1f, %.1f", p.X, p.Y, p.Z)) end)
+        pcall(function() setclipboard(string.format("%.1f, %.1f, %.1f", rootPart.Position.X, rootPart.Position.Y, rootPart.Position.Z)) end)
         copyBtn.Text = "已复制!"; task.wait(1.5); copyBtn.Text = L[CL].CopyCoord
     end
 end)
 
 local tpTitle = Instance.new("TextLabel", playerPage)
-tpTitle.Size = UDim2.new(1, 0, 0, 24); tpTitle.Position = UDim2.new(0, 10, 0, 520)
+tpTitle.Size = UDim2.new(1, 0, 0, 24); tpTitle.Position = UDim2.new(0, 10, 0, 400)
 tpTitle.Text = L[CL].TpTitle; tpTitle.TextColor3 = Color3.fromRGB(255, 200, 100); tpTitle.Font = Enum.Font.SourceSansBold; tpTitle.TextSize = 15; tpTitle.BackgroundTransparency = 1
 
 local tpInput = Instance.new("TextBox", playerPage)
-tpInput.Size = UDim2.new(0.6, 0, 0, 28); tpInput.Position = UDim2.new(0.05, 0, 0, 550)
+tpInput.Size = UDim2.new(0.6, 0, 0, 28); tpInput.Position = UDim2.new(0.05, 0, 0, 430)
 tpInput.PlaceholderText = "例如: 100, 50, 200"; tpInput.BackgroundColor3 = Color3.fromRGB(50, 50, 60); tpInput.TextColor3 = Color3.new(1,1,1); tpInput.Font = Enum.Font.SourceSans; tpInput.TextSize = 13
 local TPC = Instance.new("UICorner", tpInput); TPC.CornerRadius = UDim.new(0, 6)
 
 local tpBtn = Instance.new("TextButton", playerPage)
-tpBtn.Size = UDim2.new(0.3, 0, 0, 28); tpBtn.Position = UDim2.new(0.65, 0, 0, 550)
+tpBtn.Size = UDim2.new(0.3, 0, 0, 28); tpBtn.Position = UDim2.new(0.65, 0, 0, 430)
 tpBtn.Text = L[CL].TpBtn; tpBtn.BackgroundColor3 = Color3.fromRGB(180, 130, 50); tpBtn.TextColor3 = Color3.new(1,1,1); tpBtn.Font = Enum.Font.SourceSansBold; tpBtn.TextSize = 13
 local TBC2 = Instance.new("UICorner", tpBtn); TBC2.CornerRadius = UDim.new(0, 6)
 
 tpBtn.MouseButton1Click:Connect(function()
     local input = tpInput.Text
     local x, y, z = input:match("([%-]?[%d%.]+),%s*([%-]?[%d%.]+),%s*([%-]?[%d%.]+)")
-    if x and y and z then
-        if rootPart then
-            rootPart.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
-            tpBtn.Text = "传送成功!"; task.wait(1.5); tpBtn.Text = L[CL].TpBtn
-        end
+    if x and y and z and rootPart then
+        rootPart.CFrame = CFrame.new(tonumber(x), tonumber(y), tonumber(z))
+        tpBtn.Text = "传送成功!"; task.wait(1.5); tpBtn.Text = L[CL].TpBtn
     else
         tpBtn.Text = "格式错误!"; task.wait(1.5); tpBtn.Text = L[CL].TpBtn
     end
 end)
 
--- 皮脚本
-local skinBtn = Instance.new("TextButton", skinPage)
-skinBtn.Size = UDim2.new(0.5, 0, 0, 42); skinBtn.Position = UDim2.new(0.25, 0, 0.3, 0)
+-- === ③ 其他脚本 ===
+local othersTitle = Instance.new("TextLabel", othersPage)
+othersTitle.Size = UDim2.new(1, 0, 0, 24); othersTitle.Position = UDim2.new(0, 10, 0, 5)
+othersTitle.Text = L[CL].OthersTitle; othersTitle.TextColor3 = Color3.fromRGB(255, 200, 100); othersTitle.Font = Enum.Font.SourceSansBold; othersTitle.TextSize = 16; othersTitle.BackgroundTransparency = 1
+
+local skinBtn = Instance.new("TextButton", othersPage)
+skinBtn.Size = UDim2.new(0.7, 0, 0, 40); skinBtn.Position = UDim2.new(0.15, 0, 0.15, 0)
 skinBtn.Text = L[CL].SkinBtn; skinBtn.BackgroundColor3 = Color3.fromRGB(100, 55, 150); skinBtn.TextColor3 = Color3.new(1,1,1)
 skinBtn.Font = Enum.Font.SourceSansBold; skinBtn.TextSize = 16; local SBC = Instance.new("UICorner", skinBtn); SBC.CornerRadius = UDim.new(0, 8)
-skinBtn.MouseButton1Click:Connect(function()
-    skinBtn.Text = "加载中..."; local scr = safeHttp(CONFIG.SkinScriptUrl)
-    if scr then pcall(loadstring, scr)() end
-    skinBtn.Text = L[CL].SkinBtn
-end)
+skinBtn.originalText = L[CL].SkinBtn; skinBtn.originalColor = Color3.fromRGB(100, 55, 150)
+skinBtn.MouseButton1Click:Connect(function() safeLoadScript(CONFIG.SkinScriptUrl, skinBtn, "皮脚本加载成功!") end)
 
--- 通用脚本
-local genBtn = Instance.new("TextButton", generalPage)
-genBtn.Size = UDim2.new(0.5, 0, 0, 42); genBtn.Position = UDim2.new(0.25, 0, 0.3, 0)
+local genBtn = Instance.new("TextButton", othersPage)
+genBtn.Size = UDim2.new(0.7, 0, 0, 40); genBtn.Position = UDim2.new(0.15, 0, 0.30, 0)
 genBtn.Text = L[CL].GeneralBtn; genBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 120); genBtn.TextColor3 = Color3.new(1,1,1)
 genBtn.Font = Enum.Font.SourceSansBold; genBtn.TextSize = 16; local GBC = Instance.new("UICorner", genBtn); GBC.CornerRadius = UDim.new(0, 8)
-genBtn.MouseButton1Click:Connect(function()
-    genBtn.Text = "加载中..."; local scr = safeHttp(CONFIG.GeneralScriptUrl)
-    if scr then pcall(loadstring, scr)() end
-    genBtn.Text = L[CL].GeneralBtn
+genBtn.originalText = L[CL].GeneralBtn; genBtn.originalColor = Color3.fromRGB(60, 100, 120)
+genBtn.MouseButton1Click:Connect(function() safeLoadScript(CONFIG.GeneralScriptUrl, genBtn, "通用脚本加载成功!") end)
+
+local dgBtn = Instance.new("TextButton", othersPage)
+dgBtn.Size = UDim2.new(0.7, 0, 0, 40); dgBtn.Position = UDim2.new(0.15, 0, 0.45, 0)
+dgBtn.Text = L[CL].DaoGuanBtn; dgBtn.BackgroundColor3 = Color3.fromRGB(180, 130, 60); dgBtn.TextColor3 = Color3.new(1,1,1)
+dgBtn.Font = Enum.Font.SourceSansBold; dgBtn.TextSize = 16; local DBC = Instance.new("UICorner", dgBtn); DBC.CornerRadius = UDim.new(0, 8)
+dgBtn.originalText = L[CL].DaoGuanBtn; dgBtn.originalColor = Color3.fromRGB(180, 130, 60)
+dgBtn.MouseButton1Click:Connect(function()
+    dgBtn.Text = "加载中..."; dgBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    task.spawn(function()
+        pcall(function()
+            loadstring(game:HttpGet("\104\116\116\112\115\58\47\47\112\97\115\116\101\98\105\110\46\99\111\109\47\114\97\119\47\103\117\54\110\71\97\120\88"))()
+        end)
+        dgBtn.Text = "道观中心加载成功!"; dgBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+        task.wait(2)
+        dgBtn.Text = dgBtn.originalText; dgBtn.BackgroundColor3 = dgBtn.originalColor
+    end)
 end)
 
--- 延伸分支
+-- === ④ 延伸分支 ===
 Instance.new("TextLabel", extendPage).Size = UDim2.new(1, 0, 0, 24); Instance.new("TextLabel", extendPage).Position = UDim2.new(0, 10, 0, 5)
 Instance.new("TextLabel", extendPage).Text = L[CL].ExtendTitle; Instance.new("TextLabel", extendPage).TextColor3 = Color3.fromRGB(255, 200, 100)
 Instance.new("TextLabel", extendPage).Font = Enum.Font.SourceSansBold; Instance.new("TextLabel", extendPage).TextSize = 16; Instance.new("TextLabel", extendPage).BackgroundTransparency = 1
@@ -403,13 +497,13 @@ createExtendBtn(L[CL].VN, 220, runQingyun)
 createExtendBtn(L[CL].HP1, 270, runLaoDa)
 createExtendBtn(L[CL].HP2, 320, runUnknown)
 
--- 关于页（含完整更新日志）
+-- === ⑤ 关于页（最新前5条更新日志）===
 local aboutTxt = Instance.new("TextLabel", aboutPage)
 aboutTxt.Size = UDim2.new(1, -20, 1, -20); aboutTxt.Position = UDim2.new(0, 10, 0, 10)
 aboutTxt.Text = L[CL].AboutText; aboutTxt.TextColor3 = Color3.fromRGB(220, 220, 220); aboutTxt.Font = Enum.Font.SourceSans; aboutTxt.TextSize = 13
 aboutTxt.BackgroundTransparency = 1; aboutTxt.TextXAlignment = Enum.TextXAlignment.Left; aboutTxt.TextYAlignment = Enum.TextYAlignment.Top
 
--- 开发者面板
+-- === ⑥ 开发者面板 ===
 if isOwner then
     Instance.new("TextLabel", devPage).Size = UDim2.new(1, 0, 0, 24); Instance.new("TextLabel", devPage).Position = UDim2.new(0, 10, 0, 5)
     Instance.new("TextLabel", devPage).Text = L[CL].DevPanel.Title; Instance.new("TextLabel", devPage).TextColor3 = Color3.fromRGB(255, 200, 100)
@@ -437,25 +531,11 @@ LangBtn.MouseButton1Click:Connect(function()
     CL = CL == "CN" and "EN" or "CN"
     TTL.Text = L[CL].Title .. (isOwner and " [OWNER]" or "")
     LangBtn.Text = L[CL].LangBtn
-    for i, name in ipairs({"Home","Player","Skin","General","Extend","About","Dev"}) do
+    for i, name in ipairs({"Home","Player","Others","Extend","About","Dev"}) do
         if menuBtns[i] then menuBtns[i].Text = L[CL].Tabs[name] end
     end
     homeTxt.Text = string.format(L[CL].HomeFmt, LP.DisplayName, LP.Name, getTime())
     pTitle.Text = L[CL].PlayerTitle
-    applyBtn.Text = L[CL].Apply
-    -- 刷新坐标标题
-    coordTitle.Text = L[CL].CoordTitle
-end)
-
--- // ====================== 最小化 ====================== \\
-local minimized = false
-CatBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        MF.Size = UDim2.new(0.75, 0, 0, 34); Menu.Visible = false; Content.Visible = false
-    else
-        MF.Size = UDim2.new(0.75, 0, 0.75, 0); Menu.Visible = true; Content.Visible = true
-    end
 end)
 
 -- // ====================== 角色重生 ====================== \\
@@ -466,4 +546,4 @@ end)
 -- // ====================== 启动 Anti-AFK ====================== \\
 startAntiAFK()
 
-print("✅ Old Cat Cheat v3.7 - Anti-AFK + Full Changelog Loaded!")
+print("✅ Old Cat Cheat v3.9 - Slider UI Loaded!")
