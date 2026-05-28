@@ -1,144 +1,220 @@
 --[[
 ========================================
-Old Cat Cheat - Loader v2.5 Final
-作者：老猫
-日期：2026-05-28
-功能：密钥 / 中英切换 / 猫咪最小化(仅标题) / 玩家单独开关+飞行 / 关于页
+Old Cat Cheat - Loader v2.6 FIX
+修复：
+- loadstring 加 pcall 防崩溃并报错
+- 密钥错误 3 次 → Kick Player
+- 猫咪最小化只显示标题栏
+- 玩家功能单独开关 + 飞行（内嵌）
+- 中英文 + 关于页
 ========================================
 ]]
 
 -- // ====================== 配置 ====================== \\
 local CONFIG = {
     SkinScriptUrl  = "https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua",
-    GeneralScriptUrl = "https://pastefy.app/2uwPck6l/raw",
+    GeneralScriptUrl = "https://pastefy.app/2uwPck6l/raw", -- ← 确保此链接有效
     CatImageUrl   = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/cat.png",
-    CorrectKey    = "laomao2026"
+    CorrectKey    = "laomao2026",
+    MaxAttempts   = 3
 }
 
 -- // ====================== 语言 ====================== \\
 local L = {
     CN = {
-        Title="老猫脚本 v2.5", Tabs={Home="主页",Player="玩家功能",Skin="皮脚本",General="通用脚本",About="关于"},
-        Notice=function(p) return ("公告\n玩家姓名: %s\n用户名: %s\n注入器: 老猫脚本\n北京时间: %s"):format(p.DisplayName,p.Name,os.date("%Y-%m-%d %H:%M:%S",os.time()+8)) end,
+        Title="老猫脚本 v2.6",
+        Tabs={Home="主页",Player="玩家功能",Skin="皮脚本",General="通用脚本",About="关于"},
+        Notice=function(p)
+            return ("公告\n玩家姓名: %s\n用户名: %s\n注入器: 老猫脚本\n北京时间: %s")
+                :format(p.DisplayName,p.Name,os.date("%Y-%m-%d %H:%M:%S",os.time()+8))
+        end,
         PH={S="输入速度",J="输入跳跃",H="输入高度"},
         Btn={Fly="飞行",Skin="执行皮脚本",Gen="打开月抛脚本中心"},
-        KeyTitle="请输入密钥",KeyPH="输入密钥...",KeyOK="确认",KeyErr="密钥错误！剩余:%d",
+        KeyTitle="请输入密钥",KeyPH="输入密钥...",KeyOK="确认",
+        KeyErr="密钥错误！剩余尝试次数: %d",
         AboutTitle="关于 Old Cat Cheat",
-        Log="更新日志\nv2.5 (2026-05-28)\n- 猫咪最小化只显示标题栏\n- 修复文字残留Bug\n- 飞行功能修复\n\nv2.3\n- 密钥/中英/单独开关/关于页",
-        Credit="制作人员\n脚本作者：老猫 (Laomao)\nUI 设计：老猫\n特别感谢：皮脚本QQ群894995244"
+        Log="更新日志\nv2.6 (2026-05-28)\n- 修复脚本加载崩溃\n- 密钥错误3次踢出游戏\n- 猫咪最小化仅标题栏",
+        Credit="制作人员\n作者：老猫 (Laomao)\nUI：老猫\n感谢：皮脚本QQ群894995244"
     },
     EN = {
-        Title="Old Cat Cheat v2.5", Tabs={Home="Home",Player="Player",Skin="Skin",General="General",About="About"},
-        Notice=function(p) return ("Announcement\nPlayer: %s\nUsername: %s\nInjector: Old Cat Cheat\nBeijing Time: %s"):format(p.DisplayName,p.Name,os.date("%Y-%m-%d %H:%M:%S",os.time()+8)) end,
+        Title="Old Cat Cheat v2.6",
+        Tabs={Home="Home",Player="Player",Skin="Skin",General="General",About="About"},
+        Notice=function(p)
+            return ("Announcement\nPlayer: %s\nUsername: %s\nInjector: Old Cat Cheat\nBeijing Time: %s")
+                :format(p.DisplayName,p.Name,os.date("%Y-%m-%d %H:%M:%S",os.time()+8))
+        end,
         PH={S="WalkSpeed",J="JumpPower",H="HipHeight"},
         Btn={Fly="Fly",Skin="Inject Skin",Gen="Script Center"},
-        KeyTitle="Enter Key",KeyPH="Enter key...",KeyOK="Confirm",KeyErr="Wrong Key! Left:%d",
+        KeyTitle="Enter Key",KeyPH="Enter key...",KeyOK="Confirm",
+        KeyErr="Wrong Key! Attempts left: %d",
         AboutTitle="About Old Cat Cheat",
-        Log="Changelog\nv2.5 (2026-05-28)\n- Minimize shows title only\n- Fixed text residue bug\n- Fly fixed\n\nv2.3\n- Key/CN-EN/Toggles/About",
+        Log="Changelog\nv2.6 (2026-05-28)\n- Fixed load crash\n- Kick on 3 wrong keys\n- Minimize = title only",
         Credit="Credits\nAuthor: Laomao\nUI: Laomao\nThanks: Pi Script QQ Group 894995244"
     }
 }
 local CL = "CN"
 
+-- // ====================== 服务 ====================== \\
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
-if LP.PlayerGui:FindFirstChild("LaomaoUI_Final") then LP.PlayerGui.LaomaoUI_Final:Destroy() end
+if LP.PlayerGui:FindFirstChild("LaomaoUI_Final") then
+    LP.PlayerGui.LaomaoUI_Final:Destroy()
+end
+
+-- // ====================== ScreenGui ====================== \\
+local SG = Instance.new("ScreenGui")
+SG.Name = "LaomaoUI_Final"
+SG.ResetOnSpawn = false
+SG.IgnoreGuiInset = true
+SG.Parent = LP.PlayerGui
 
 -- // ====================== 密钥窗口 ====================== \\
-local SG = Instance.new("ScreenGui",LP.PlayerGui)
-SG.Name="LaomaoUI_Final"; SG.ResetOnSpawn=false; SG.IgnoreGuiInset=true
-
-local KFrm = Instance.new("Frame",SG)
-KFrm.Size=UDim2.new(0,320,0,170); KFrm.Position=UDim2.new(.5,-160,.5,-85)
-KFrm.BgColor3=Color3.fromRGB(30,30,40); KFrm.BorderSizePixel=0; KFrm.Active=true; KFrm.Draggable=true
+local KFrm = Instance.new("Frame", SG)
+KFrm.Size = UDim2.new(0,330,0,175)
+KFrm.Position = UDim2.new(0.5,-165,0.5,-87)
+KFrm.BackgroundColor3 = Color3.fromRGB(30,30,40)
+KFrm.BorderSizePixel = 0
+KFrm.Active = true
+KFrm.Draggable = true
 
 local KTtl = Instance.new("TextLabel",KFrm)
-KTtl.Size=UDim2.new(1,0,0,36); KTtl.BgColor3=Color3.fromRGB(45,45,55)
-KTtl.Text=L[CL].KeyTitle; KTtl.TextCol3=Color3.new(1,1,1); KTtl.Font=Enum.Font.SourceSansBold; KTtl.TextSize=16
+KTtl.Size = UDim2.new(1,0,0,36)
+KTtl.BackgroundColor3 = Color3.fromRGB(45,45,55)
+KTtl.Text = L[CL].KeyTitle
+KTtl.TextColor3 = Color3.new(1,1,1)
+KTtl.Font = Enum.Font.SourceSansBold
+KTtl.TextSize = 16
 
 local KBox = Instance.new("TextBox",KFrm)
-KBox.Size=UDim2.new(1,-40,0,36); KBox.Pos=UDim2.new(0,20,0,46)
-KBox.BgColor3=Color3.fromRGB(55,55,65); KBox.TextCol3=Color3.new(1,1,1)
-KBox.PlaceholderText=L[CL].KeyPH; KBox.Font=Enum.Font.SourceSans; KBox.TextSize=14
+KBox.Size = UDim2.new(1,-40,0,36)
+KBox.Position = UDim2.new(0,20,0,46)
+KBox.BackgroundColor3 = Color3.fromRGB(55,55,65)
+KBox.TextColor3 = Color3.new(1,1,1)
+KBox.PlaceholderText = L[CL].KeyPH
+KBox.Font = Enum.Font.SourceSans
+KBox.TextSize = 14
 
 local KBtn = Instance.new("TextButton",KFrm)
-KBtn.Size=UDim2.new(1,-40,0,36); KBtn.Pos=UDim2.new(0,20,0,92)
-KBtn.BgColor3=Color3.fromRGB(70,130,70); KBtn.Text=L[CL].KeyOK; KBtn.TextCol3=Color3.new(1,1,1)
-KBtn.Font=Enum.Font.SourceSansBold; KBtn.TextSize=16
+KBtn.Size = UDim2.new(1,-40,0,36)
+KBtn.Position = UDim2.new(0,20,0,92)
+KBtn.BackgroundColor3 = Color3.fromRGB(70,130,70)
+KBtn.Text = L[CL].KeyOK
+KBtn.TextColor3 = Color3.new(1,1,1)
+KBtn.Font = Enum.Font.SourceSansBold
+KBtn.TextSize = 16
 
 local KErr = Instance.new("TextLabel",KFrm)
-KErr.Size=UDim2.new(1,0,0,22); KErr.Pos=UDim2.new(0,0,0,134)
-KErr.BgTransparency=1; KErr.TextCol3=Color3.new(1,.3,.3); KErr.Font=Enum.Font.SourceSans; KErr.TextSize=13; KErr.Visible=false
+KErr.Size = UDim2.new(1,0,0,22)
+KErr.Position = UDim2.new(0,0,0,134)
+KErr.BackgroundTransparency = 1
+KErr.TextColor3 = Color3.fromRGB(1,0.2,0.2)
+KErr.Font = Enum.Font.SourceSans
+KErr.TextSize = 13
+KErr.Visible = false
 
--- // ====================== 主 UI ====================== \\
+-- // ====================== 主 UI（默认隐藏） ====================== \\
 local MF = Instance.new("Frame",SG)
-MF.Size=UDim2.new(0,460,0,320); MF.Pos=UDim2.new(.5,-230,.5,-160)
-MF.BgColor3=Color3.fromRGB(25,25,32); MF.BorderSizePixel=0; MF.Active=true; MF.Draggable=true; MF.Visible=false
+MF.Size = UDim2.new(0,460,0,320)
+MF.Position = UDim2.new(0.5,-230,0.5,-160)
+MF.BackgroundColor3 = Color3.fromRGB(25,25,32)
+MF.BorderSizePixel = 0
+MF.Active = true
+MF.Draggable = true
+MF.Visible = false
 
 local TB = Instance.new("Frame",MF)
-TB.Size=UDim2.new(1,0,0,34); TB.BgColor3=Color3.fromRGB(38,38,50)
+TB.Size = UDim2.new(1,0,0,34)
+TB.BackgroundColor3 = Color3.fromRGB(38,38,50)
 
 local TTL = Instance.new("TextLabel",TB)
-TTL.Size=UDim2.new(1,-140,1,0); TTL.Pos=UDim2.new(0,10,0,0)
-TTL.BgTransparency=1; TTL.Text=L[CL].Title; TTL.TextCol3=Color3.fromRGB(255,205,80)
-TTL.Font=Enum.Font.SourceSansBold; TTL.TextSize=18; TTL.TextXAlign=Enum.TextXAlignment.Left
+TTL.Size = UDim2.new(1,-140,1,0)
+TTL.Position = UDim2.new(0,10,0,0)
+TTL.BackgroundTransparency = 1
+TTL.Text = L[CL].Title
+TTL.TextColor3 = Color3.fromRGB(255,205,80)
+TTL.Font = Enum.Font.SourceSansBold
+TTL.TextSize = 18
+TTL.TextXAlignment = Enum.TextXAlignment.Left
 
 -- 语言按钮
 local LB = Instance.new("TextButton",TB)
-LB.Size=UDim2.new(0,76,0,28); LB.Pos=UDim2.new(1,-112,0,3)
-LB.BgColor3=Color3.fromRGB(75,75,90); LB.TextCol3=Color3.new(1,1,1)
-LB.Font=Enum.Font.SourceSans; LB.TextSize=12; LB.Text="中/EN"
+LB.Size = UDim2.new(0,76,0,28)
+LB.Position = UDim2.new(1,-112,0,3)
+LB.BackgroundColor3 = Color3.fromRGB(75,75,90)
+LB.TextColor3 = Color3.new(1,1,1)
+LB.Font = Enum.Font.SourceSans
+LB.TextSize = 12
+LB.Text = "中/EN"
 
--- 猫咪最小化按钮
+-- ★ 猫咪最小化按钮
 local CB = Instance.new("ImageButton",TB)
-CB.Size=UDim2.new(0,30,0,30); CB.Pos=UDim2.new(1,-34,0,2)
-CB.BgColor3=Color3.fromRGB(200,60,60); CB.BgTransparency=.25; CB.BorderSizePixel=0; CB.ZIndex=99; CB.Active=true
-pcall(function() CB.Image=CONFIG.CatImageUrl end)
+CB.Size = UDim2.new(0,30,0,30)
+CB.Position = UDim2.new(1,-34,0,2)
+CB.BackgroundColor3 = Color3.fromRGB(200,60,60)
+CB.BackgroundTransparency = 0.25
+CB.BorderSizePixel = 0
+CB.ZIndex = 99
+CB.Active = true
+pcall(function() CB.Image = CONFIG.CatImageUrl end)
 
 local Tabs = Instance.new("Frame",MF)
-Tabs.Size=UDim2.new(1,0,0,28); Tabs.Pos=UDim2.new(0,0,0,34); Tabs.BgColor3=Color3.fromRGB(50,50,60)
+Tabs.Size = UDim2.new(1,0,0,28)
+Tabs.Position = UDim2.new(0,0,0,34)
+Tabs.BackgroundColor3 = Color3.fromRGB(50,50,60)
 
 local CF = Instance.new("Frame",MF)
-CF.Size=UDim2.new(1,0,1,-62); CF.Pos=UDim2.new(0,0,0,62); CF.BgTransparency=1
+CF.Size = UDim2.new(1,0,1,-62)
+CF.Position = UDim2.new(0,0,0,62)
+CF.BackgroundTransparency = 1
 
 local function mkTab(n,i)
-    local b=Instance.new("TextButton",Tabs)
-    b.Size=UDim2.new(0,100,1,0); b.Pos=UDim2.new(0,i*104,0,0)
-    b.BgColor3=Color3.fromRGB(65,65,78); b.Text=L[CL].Tabs[n]; b.TextCol3=Color3.new(1,1,1)
-    b.Font=Enum.Font.SourceSans; b.TextSize=14; b.Name=n
+    local b = Instance.new("TextButton",Tabs)
+    b.Size = UDim2.new(0,100,1,0)
+    b.Position = UDim2.new(0,i*104,0,0)
+    b.BackgroundColor3 = Color3.fromRGB(65,65,78)
+    b.Text = L[CL].Tabs[n]
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.SourceSans
+    b.TextSize = 14
+    b.Name = n
     return b
 end
 
-local tHome,tPlayer,tSkin,tGen,tAbout = mkTab("Home",0),mkTab("Player",1),mkTab("Skin",2),mkTab("General",3),mkTab("About",4)
+local tHome,tPlayer,tSkin,tGen,tAbout =
+    mkTab("Home",0),mkTab("Player",1),mkTab("Skin",2),mkTab("General",3),mkTab("About",4)
 
 -- 面板
-local pHome=Instance.new("Frame",CF); pHome.Size=UDim2.new(1,0,1,0); pHome.BgTransparency=1; pHome.Visible=true
-local pPlayer=Instance.new("Frame",CF); pPlayer.Size=UDim2.new(1,0,1,0); pPlayer.BgTransparency=1
-local pSkin=Instance.new("Frame",CF); pSkin.Size=UDim2.new(1,0,1,0); pSkin.BgTransparency=1
-local pGen=Instance.new("Frame",CF); pGen.Size=UDim2.new(1,0,1,0); pGen.BgTransparency=1
-local pAbout=Instance.new("Frame",CF); pAbout.Size=UDim2.new(1,0,1,0); pAbout.BgTransparency=1
+local pHome  = Instance.new("Frame",CF); pHome.Size=UDim2.new(1,0,1,0); pHome.BackgroundTransparency=1; pHome.Visible=true
+local pPlayer= Instance.new("Frame",CF); pPlayer.Size=UDim2.new(1,0,1,0); pPlayer.BackgroundTransparency=1
+local pSkin  = Instance.new("Frame",CF); pSkin.Size=UDim2.new(1,0,1,0); pSkin.BackgroundTransparency=1
+local pGen   = Instance.new("Frame",CF); pGen.Size=UDim2.new(1,0,1,0); pGen.BackgroundTransparency=1
+local pAbout= Instance.new("Frame",CF); pAbout.Size=UDim2.new(1,0,1,0); pAbout.BackgroundTransparency=1
 
 -- 主页
-local NL=Instance.new("TextLabel",pHome)
-NL.Size=UDim2.new(1,-16,1,0); NL.Pos=UDim2.new(0,8,0,0); NL.BgTransparency=1
-NL.TextCol3=Color3.fromRGB(180,255,180)); NL.Font=Enum.Font.SourceSans; NL.TextSize=14; NL.TextWrapped=true; NL.Text=L[CL].Notice(LP)
+local NL = Instance.new("TextLabel",pHome)
+NL.Size=UDim2.new(1,-16,1,0); NL.Position=UDim2.new(0,8,0,0)
+NL.BackgroundTransparency=1; NL.TextColor3=Color3.fromRGB(180,255,180)
+NL.Font=Enum.Font.SourceSans; NL.TextSize=14; NL.TextWrapped=true
+NL.Text = L[CL].Notice(LP)
 
--- 玩家功能
+-- === 玩家功能 ===
 local DW,DJ,DH = 16,50,2
-local flying,fConn,fVel,fGyro
+local flying,fVel,fGyro,fConn
+
 local function getHum() return LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") end
 local function getRoot() return LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") end
 
 local function toggleFly()
-    flying=not flying; local h=getHum(); local r=getRoot()
+    flying = not flying
+    local h,r = getHum(),getRoot()
     if flying and r and h then
-        h.PlatformStand=true
-        fVel=Instance.new("BodyVelocity",r); fVel.MaxForce=Vector3.new(1e5,1e5,1e5); fVel.Velocity=Vector3.zero
-        fGyro=Instance.new("BodyGyro",r); fGyro.MaxTorque=Vector3.new(1e5,1e5,1e5); fGyro.CFrame=r.CFrame
-        fConn=RS.RenderStepped:Connect(function()
+        h.PlatformStand = true
+        fVel = Instance.new("BodyVelocity",r); fVel.MaxForce=Vector3.new(1e5,1e5,1e5); fVel.Velocity=Vector3.zero
+        fGyro= Instance.new("BodyGyro",r);  fGyro.MaxTorque=Vector3.new(1e5,1e5,1e5); fGyro.CFrame=r.CFrame
+        fConn = RS.RenderStepped:Connect(function()
             local cam=workspace.CurrentCamera; local d=Vector3.zero
             if UIS:IsKeyDown(Enum.KeyCode.W) then d=d+cam.CFrame.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.S) then d=d-cam.CFrame.LookVector end
@@ -146,8 +222,8 @@ local function toggleFly()
             if UIS:IsKeyDown(Enum.KeyCode.D) then d=d+cam.CFrame.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then d=d+Vector3.yAxis end
             if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then d=d-Vector3.yAxis end
-            fVel.Velocity= d.Magnitude>0 and d.Unit*50 or Vector3.new(0,-1,0)
-            fGyro.CFrame=cam.CFrame
+            fVel.Velocity = d.Magnitude>0 and d.Unit*50 or Vector3.new(0,-1,0)
+            fGyro.CFrame = cam.CFrame
         end)
     else
         if fConn then fConn:Disconnect() fConn=nil end
@@ -157,65 +233,88 @@ local function toggleFly()
     end
 end
 
-local function mkTog(txt,y,on)
+local function mkTog(txt,y,fn)
     local b=Instance.new("TextButton",pPlayer)
-    b.Size=UDim2.new(.82,0,0,36); b.Pos=UDim2.new(.09,0,0,y)
-    b.BgColor3=Color3.fromRGB(110,50,50); b.Text=txt..": OFF"; b.TextCol3=Color3.new(1,1,1)
-    b.Font=Enum.Font.SourceSansBold; b.TextSize=15
+    b.Size=UDim2.new(.82,0,0,36); b.Position=UDim2.new(.09,0,0,y)
+    b.BackgroundColor3=Color3.fromRGB(110,50,50); b.Text=txt..": OFF"
+    b.TextColor3=Color3.new(1,1,1); b.Font=Enum.Font.SourceSansBold; b.TextSize=15
     local e=false
     b.MouseButton1Click:Connect(function()
         e=not e; b.Text=txt..(e and ": ON" or ": OFF")
-        b.BgColor3=e and Color3.fromRGB(50,110,50) or Color3.fromRGB(110,50,50)
-        on(e)
+        b.BackgroundColor3=e and Color3.fromRGB(50,110,50) or Color3.fromRGB(110,50,50)
+        fn(e)
     end)
 end
+
 mkTog("速度",.06,function(e) local h=getHum() if h then h.WalkSpeed=e and tonumber(sBox.Text) or DW end end)
 mkTog("跳跃",.22,function(e) local h=getHum() if h then h.JumpPower=e and tonumber(jBox.Text) or DJ end end)
 mkTog("高度",.38,function(e) local h=getHum() if h then h.HipHeight=e and tonumber(hBox.Text) or DH end end)
 
 local fBtn=Instance.new("TextButton",pPlayer)
-fBtn.Size=UDim2.new(.82,0,0,36); fBtn.Pos=UDim2.new(.09,0,0,.56)
-fBtn.BgColor3=Color3.fromRGB(60,80,180); fBtn.Text=L[CL].Btn.Fly; fBtn.TextCol3=Color3.new(1,1,1)
+fBtn.Size=UDim2.new(.82,0,0,36); fBtn.Position=UDim2.new(.09,0,0,.56)
+fBtn.BackgroundColor3=Color3.fromRGB(60,80,180); fBtn.Text=L[CL].Btn.Fly; fBtn.TextColor3=Color3.new(1,1,1)
 fBtn.Font=Enum.Font.SourceSansBold; fBtn.TextSize=15
-fBtn.MouseButton1Click:Connect(function() toggleFly() fBtn.Text=flying and "停止飞行" or L[CL].Btn.Fly end)
+fBtn.MouseButton1Click:Connect(function() toggleFly(); fBtn.Text=flying and "停止飞行" or L[CL].Btn.Fly end)
 
-local sBox=Instance.new("TextBox",pPlayer); sBox.Size=UDim2.new(.25,0,0,28); sBox.Pos=UDim2.new(.09,0,0,.74); sBox.PlaceholderText=L[CL].PH.S; sBox.BgColor3=Color3.fromRGB(55,55,65); sBox.TextCol3=Color3.new(1,1,1); sBox.Font=Enum.Font.SourceSans; sBox.TextSize=13
-local jBox=Instance.new("TextBox",pPlayer); jBox.Size=UDim2.new(.25,0,0,28); jBox.Pos=UDim2.new(.37,0,0,.74); jBox.PlaceholderText=L[CL].PH.J; jBox.BgColor3=Color3.fromRGB(55,55,65); jBox.TextCol3=Color3.new(1,1,1); jBox.Font=Enum.Font.SourceSans; jBox.TextSize=13
-local hBox=Instance.new("TextBox",pPlayer); hBox.Size=UDim2.new(.25,0,0,28); hBox.Pos=UDim2.new(.65,0,0,.74); hBox.PlaceholderText=L[CL].PH.H; hBox.BgColor3=Color3.fromRGB(55,55,65); hBox.TextCol3=Color3.new(1,1,1); hBox.Font=Enum.Font.SourceSans; hBox.TextSize=13
+local sBox=Instance.new("TextBox",pPlayer); sBox.Size=UDim2.new(.25,0,0,28); sBox.Position=UDim2.new(.09,0,0,.74); sBox.PlaceholderText=L[CL].PH.S; sBox.BackgroundColor3=Color3.fromRGB(55,55,65); sBox.TextColor3=Color3.new(1,1,1); sBox.Font=Enum.Font.SourceSans; sBox.TextSize=13
+local jBox=Instance.new("TextBox",pPlayer); jBox.Size=UDim2.new(.25,0,0,28); jBox.Position=UDim2.new(.37,0,0,.74); jBox.PlaceholderText=L[CL].PH.J; jBox.BackgroundColor3=Color3.fromRGB(55,55,65); jBox.TextColor3=Color3.new(1,1,1); jBox.Font=Enum.Font.SourceSans; jBox.TextSize=13
+local hBox=Instance.new("TextBox",pPlayer); hBox.Size=UDim2.new(.25,0,0,28); hBox.Position=UDim2.new(.65,0,0,.74); hBox.PlaceholderText=L[CL].PH.H; hBox.BackgroundColor3=Color3.fromRGB(55,55,65); hBox.TextColor3=Color3.new(1,1,1); hBox.Font=Enum.Font.SourceSans; hBox.TextSize=13
 
--- 皮脚本
-local sb=Instance.new("TextButton",pSkin); sb.Size=UDim2.new(.8,0,0,42); sb.Pos=UDim2.new(.1,0,.35,0); sb.BgColor3=Color3.fromRGB(100,55,150); sb.Text=L[CL].Btn.Skin; sb.TextCol3=Color3.new(1,1,1); sb.Font=Enum.Font.SourceSansBold; sb.TextSize=16
-sb.MouseButton1Click:Connect(function() getgenv().XiaoPi="皮脚本QQ群894995244"; loadstring(game:HttpGet(CONFIG.SkinScriptUrl,true))() end)
-
--- 通用
-local gb=Instance.new("TextButton",pGen); gb.Size=UDim2.new(.8,0,0,42); gb.Pos=UDim2.new(.1,0,.35,0); gb.BgColor3=Color3.fromRGB(50,95,110); gb.Text=L[CL].Btn.Gen; gb.TextCol3=Color3.new(1,1,1); gb.Font=Enum.Font.SourceSansBold; gb.TextSize=16
-gb.MouseButton1Click:Connect(function() loadstring(game:HttpGet(CONFIG.GeneralScriptUrl,true))() end)
-
--- 关于
-Instance.new("TextLabel",pAbout).Size=UDim2.new(1,-12,0,28); Instance.new("TextLabel",pAbout).Pos=UDim2.new(0,6,0,6); Instance.new("TextLabel",pAbout).BgTransparency=1; Instance.new("TextLabel",pAbout).Text=L[CL].AboutTitle; Instance.new("TextLabel",pAbout).TextCol3=Color3.fromRGB(255,205,80); Instance.new("TextLabel",pAbout).Font=Enum.Font.SourceSansBold; Instance.new("TextLabel",pAbout).TextSize=16; Instance.new("TextLabel",pAbout).Parent=pAbout
-local clLbl=Instance.new("TextLabel",pAbout); clLbl.Size=UDim2.new(1,-12,0,90); clLbl.Pos=UDim2.new(0,6,0,38); clLbl.BgTransparency=1; clLbl.TextCol3=Color3.fromRGB(200,255,200); clLbl.Font=Enum.Font.SourceSans; clLbl.TextSize=13; clLbl.TextWrapped=true; clLbl.Text=L[CL].Log
-local crLbl=Instance.new("TextLabel",pAbout); crLbl.Size=UDim2.new(1,-12,0,60); crLbl.Pos=UDim2.new(0,6,0,136); crLbl.BgTransparency=1; crLbl.TextCol3=Color3.fromRGB(200,220,255); crLbl.Font=Enum.Font.SourceSans; crLbl.TextSize=13; crLbl.TextWrapped=true; crLbl.Text=L[CL].Credit
-
--- // ====================== 逻辑 ====================== \\
-local minimized=false
-CB.MouseButton1Click:Connect(function()
-    minimized=not minimized
-    if minimized then
-        MF.Size=UDim2.new(0,460,0,34)  -- 只留标题栏
-        Tabs.Visible=false; CF.Visible=false
+-- 皮脚本（带容错）
+local sb=Instance.new("TextButton",pSkin); sb.Size=UDim2.new(.8,0,0,42); sb.Position=UDim2.new(.1,0,.35,0)
+sb.BackgroundColor3=Color3.fromRGB(100,55,150); sb.Text=L[CL].Btn.Skin; sb.TextColor3=Color3.new(1,1,1)
+sb.Font=Enum.Font.SourceSansBold; sb.TextSize=16
+sb.MouseButton1Click:Connect(function()
+    local ok,scr = pcall(game.HttpGet,game,CONFIG.SkinScriptUrl,true)
+    if ok and scr and scr~="" then
+        local s,err = pcall(loadstring,scr)
+        if s then s() else warn("皮脚本解析失败:",err) end
     else
-        MF.Size=UDim2.new(0,460,0,320)
-        Tabs.Visible=true; CF.Visible=true
+        warn("皮脚本下载失败:",scr)
+    end
+end)
+
+-- 通用脚本（带容错）
+local gb=Instance.new("TextButton",pGen); gb.Size=UDim2.new(.8,0,0,42); gb.Position=UDim2.new(.1,0,.35,0)
+gb.BackgroundColor3=Color3.fromRGB(50,95,110); gb.Text=L[CL].Btn.Gen; gb.TextColor3=Color3.new(1,1,1)
+gb.Font=Enum.Font.SourceSansBold; gb.TextSize=16
+gb.MouseButton1Click:Connect(function()
+    local ok,scr = pcall(game.HttpGet,game,CONFIG.GeneralScriptUrl,true)
+    if ok and scr and scr~="" then
+        local s,err = pcall(loadstring,scr)
+        if s then s() else warn("通用脚本解析失败:",err) end
+    else
+        warn("通用脚本下载失败:",scr)
+    end
+end)
+
+-- 关于页
+Instance.new("TextLabel",pAbout).Size=UDim2.new(1,-12,0,28);Instance.new("TextLabel",pAbout).Position=UDim2.new(0,6,0,6);Instance.new("TextLabel",pAbout).BackgroundTransparency=1;Instance.new("TextLabel",pAbout).Text=L[CL].AboutTitle;Instance.new("TextLabel",pAbout).TextColor3=Color3.fromRGB(255,205,80);Instance.new("TextLabel",pAbout).Font=Enum.Font.SourceSansBold;Instance.new("TextLabel",pAbout).TextSize=16;Instance.new("TextLabel",pAbout).Parent=pAbout
+local clLbl=Instance.new("TextLabel",pAbout); clLbl.Size=UDim2.new(1,-12,0,80); clLbl.Position=UDim2.new(0,6,0,38); clLbl.BackgroundTransparency=1; clLbl.TextColor3=Color3.fromRGB(200,255,200); clLbl.Font=Enum.Font.SourceSans; clLbl.TextSize=13; clLbl.TextWrapped=true; clLbl.Text=L[CL].Log
+local crLbl=Instance.new("TextLabel",pAbout); crLbl.Size=UDim2.new(1,-12,0,60); crLbl.Position=UDim2.new(0,6,0,126); crLbl.BackgroundTransparency=1; crLbl.TextColor3=Color3.fromRGB(200,220,255); crLbl.Font=Enum.Font.SourceSans; crLbl.TextSize=13; crLbl.TextWrapped=true; crLbl.Text=L[CL].Credit
+
+-- // ====================== 交互逻辑 ====================== \\
+local minimized = false
+CB.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        MF.Size = UDim2.new(0,460,0,34)
+        Tabs.Visible = false
+        CF.Visible = false
+    else
+        MF.Size = UDim2.new(0,460,0,320)
+        Tabs.Visible = true
+        CF.Visible = true
     end
 end)
 
 LB.MouseButton1Click:Connect(function()
-    CL=CL=="CN" and "EN" or "CN"
+    CL = CL=="CN" and "EN" or "CN"
     TTL.Text=L[CL].Title; KTtl.Text=L[CL].KeyTitle; KBox.PlaceholderText=L[CL].KeyPH; KBtn.Text=L[CL].KeyOK
     NL.Text=L[CL].Notice(LP)
     for _,b in ipairs(Tabs:GetChildren()) do if b:IsA("TextButton") then b.Text=L[CL].Tabs[b.Name] end end
     sBox.PlaceholderText=L[CL].PH.S; jBox.PlaceholderText=L[CL].PH.J; hBox.PlaceholderText=L[CL].PH.H
-    fBtn.Text=flying and "停止飞行" or L[CL].Btn.Fly; sb.Text=L[CL].Btn.Skin; gb.Text=L[CL].Btn.Gen
+    fBtn.Text = flying and "停止飞行" or L[CL].Btn.Fly; sb.Text=L[CL].Btn.Skin; gb.Text=L[CL].Btn.Gen
     clLbl.Text=L[CL].Log; crLbl.Text=L[CL].Credit
 end)
 
@@ -229,14 +328,29 @@ tSkin.MouseButton1Click:Connect(function() show("Skin") end)
 tGen.MouseButton1Click:Connect(function() show("General") end)
 tAbout.MouseButton1Click:Connect(function() show("About") end)
 
--- 密钥验证
-local tries=3
+-- // ====================== 密钥验证 + 3次踢出 ====================== \\
+local attempts = CONFIG.MaxAttempts
+
 KBtn.MouseButton1Click:Connect(function()
-    if KBox.Text==CONFIG.CorrectKey then KFrm:Destroy(); MF.Visible=true
-    else tries=tries-1; KErr.Text=L[CL].KeyErr:format(tries); KErr.Visible=true; KBox.Text=""
-        if tries<=0 then SG:Destroy() end
+    if KBox.Text == CONFIG.CorrectKey then
+        KFrm:Destroy()
+        MF.Visible = true
+    else
+        attempts = attempts - 1
+        if attempts <= 0 then
+            -- ★ 3次错误 → 踢出游戏
+            SG:Destroy()
+            LP:Kick("密钥错误次数过多，已被踢出！")
+        else
+            KErr.Text = L[CL].KeyErr:format(attempts)
+            KErr.Visible = true
+            KBox.Text = ""
+        end
     end
 end)
-KBox.FocusLost:Connect(function(ep) if ep then KBtn.MouseButton1Click:Fire() end end)
 
-print("Old Cat Cheat v2.5 Loaded!")
+KBox.FocusLost:Connect(function(ep)
+    if ep then KBtn.MouseButton1Click:Fire() end
+end)
+
+print("Old Cat Cheat v2.6 Loaded OK")
