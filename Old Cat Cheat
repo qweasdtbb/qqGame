@@ -1,23 +1,53 @@
 --[[
-    ========================================
-    Old Cat Cheat - Loader v2.0
-    作者：老猫
-    日期：2026-05-28
-    ========================================
+========================================
+Old Cat Cheat - Loader v2.1 (Final Fix)
+作者：老猫
+日期：2026-05-28
+修复内容：
+1. 修复猫咪关闭按钮点击无效
+2. 修复玩家功能开关逻辑
+3. 修复飞行脚本加载
+4. 新增中英文切换功能
+========================================
 ]]
 
 -- // ====================== 配置区 ====================== \\
 local CONFIG = {
     SkinScriptUrl = "https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua",
-    GeneralScriptUrl = "https://pastefy.app/2uwPck6l/raw"
+    GeneralScriptUrl = "https://pastefy.app/2uwPck6l/raw",
+    CatImageUrl = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/cat.png"
 }
+
+-- // ====================== 语言配置 ====================== \\
+local Language = {
+    CN = {
+        Title = "老猫脚本 v2.1",
+        Tabs = {Home = "主页", Player = "玩家功能", Skin = "皮脚本", General = "通用脚本"},
+        HomeNotice = "公告\n玩家姓名: %s\n用户名: %s\n注入器: 老猫脚本\n北京时间: %s",
+        PlayerToggle = "玩家功能：关",
+        PlayerToggleOn = "玩家功能：开",
+        Placeholders = {Speed = "输入速度", Jump = "输入跳跃", Height = "输入高度"},
+        Buttons = {Fly = "飞行", ExecuteSkin = "执行皮脚本", OpenCenter = "打开月抛脚本中心"},
+        LangButton = "语言：中文"
+    },
+    EN = {
+        Title = "Old Cat Cheat v2.1",
+        Tabs = {Home = "Home", Player = "Player", Skin = "Skin", General = "General"},
+        HomeNotice = "Announcement\nPlayer: %s\nUsername: %s\nInjector: Old Cat Cheat\nBeijing Time: %s",
+        PlayerToggle = "Player: OFF",
+        PlayerToggleOn = "Player: ON",
+        Placeholders = {Speed = "WalkSpeed", Jump = "JumpPower", Height = "HipHeight"},
+        Buttons = {Fly = "Fly", ExecuteSkin = "Execute Skin", OpenCenter = "Open Script Center"},
+        LangButton = "Lang: English"
+    }
+}
+local CurrentLang = "CN"
 
 -- // ====================== 核心服务 ====================== \\
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
--- 防止重复创建
 if LocalPlayer.PlayerGui:FindFirstChild("LaomaoUI_Final") then
     LocalPlayer.PlayerGui.LaomaoUI_Final:Destroy()
 end
@@ -36,7 +66,6 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
 -- 标题栏
@@ -46,36 +75,45 @@ TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 TitleBar.Parent = MainFrame
 
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -80, 1, 0)
+TitleLabel.Size = UDim2.new(1, -180, 1, 0)
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "Old Cat Cheat"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.TextSize = 18
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = TitleBar
 
--- // ===== 猫咪关闭按钮 ===== \\
+-- // ===== 猫咪关闭按钮（修复版） ===== \\
 local CloseButton = Instance.new("ImageButton")
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -32, 0, 2)
-CloseButton.BackgroundTransparency = 1
+CloseButton.Size = UDim2.new(0, 32, 0, 32)
+CloseButton.Position = UDim2.new(1, -34, 0, 1)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+CloseButton.BackgroundTransparency = 0.3
+CloseButton.BorderSizePixel = 0
+CloseButton.Active = true
 CloseButton.Parent = TitleBar
 
--- 加载猫咪图片（你的 GitHub 仓库里的 cat.png）
-local ImageSuccess, ImageResult = pcall(function()
-    CloseButton.Image = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/cat.png"
+local ImageSuccess = pcall(function()
+    CloseButton.Image = CONFIG.CatImageUrl
 end)
-
 if not ImageSuccess then
     CloseButton.Image = "rbxassetid://657041784"
-    warn("猫咪图片加载失败，已使用默认图标")
 end
 
 CloseButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
+
+-- // ===== 语言切换按钮 ===== \\
+local LangButton = Instance.new("TextButton")
+LangButton.Size = UDim2.new(0, 80, 0, 30)
+LangButton.Position = UDim2.new(1, -120, 0, 2)
+LangButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+LangButton.TextColor3 = Color3.new(1,1,1)
+LangButton.Font = Enum.Font.SourceSans
+LangButton.TextSize = 12
+LangButton.Parent = TitleBar
 
 -- Tab 容器
 local TabFrame = Instance.new("Frame")
@@ -90,14 +128,13 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 65)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Tab 创建函数
 local function CreateTab(name, index)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 110, 1, 0)
     btn.Position = UDim2.new(0, (index * 115), 0, 0)
     btn.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
     btn.Text = name
-    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.SourceSans
     btn.TextSize = 14
     btn.Parent = TabFrame
@@ -107,7 +144,7 @@ end
 -- // ====================== 功能模块 ====================== \\
 
 -- 1. 主页
-local HomeTab = CreateTab("Home", 0)
+local HomeTab = CreateTab(Language[CurrentLang].Tabs.Home, 0)
 local HomeContent = Instance.new("Frame")
 HomeContent.Size = UDim2.new(1, 0, 1, 0)
 HomeContent.BackgroundTransparency = 1
@@ -122,16 +159,10 @@ NoticeLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
 NoticeLabel.Font = Enum.Font.SourceSans
 NoticeLabel.TextSize = 14
 NoticeLabel.TextWrapped = true
-NoticeLabel.Text = string.format(
-    "Announcement\nPlayer: %s\nUsername: %s\nInjector: Old Cat Cheat\nBeijing Time: %s",
-    LocalPlayer.DisplayName,
-    LocalPlayer.Name,
-    os.date("%Y-%m-%d %H:%M:%S", os.time() + 8)
-)
 NoticeLabel.Parent = HomeContent
 
--- 2. 玩家功能（含开关）
-local PlayerTab = CreateTab("Player", 1)
+-- 2. 玩家功能（修复版）
+local PlayerTab = CreateTab(Language[CurrentLang].Tabs.Player, 1)
 local PlayerContent = Instance.new("Frame")
 PlayerContent.Size = UDim2.new(1, 0, 1, 0)
 PlayerContent.BackgroundTransparency = 1
@@ -147,66 +178,63 @@ local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0.8, 0, 0, 40)
 ToggleButton.Position = UDim2.new(0.1, 0, 0.05, 0)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
-ToggleButton.Text = "Player: OFF"
-ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.TextColor3 = Color3.new(1,1,1)
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.TextSize = 16
 ToggleButton.Parent = PlayerContent
 
-local function EnablePlayerFeatures(value)
-    PlayerEnabled = value
-    ToggleButton.Text = PlayerEnabled and "Player: ON" or "Player: OFF"
-    ToggleButton.BackgroundColor3 = PlayerEnabled and Color3.fromRGB(60, 120, 60) or Color3.fromRGB(120, 60, 60)
-
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then
-        if PlayerEnabled then
-            hum.WalkSpeed = tonumber(SpeedBox.Text) or DefaultWalkSpeed
-            hum.JumpPower = tonumber(JumpBox.Text) or DefaultJumpPower
-            hum.HipHeight = tonumber(HeightBox.Text) or DefaultHipHeight
-        else
-            hum.WalkSpeed = DefaultWalkSpeed
-            hum.JumpPower = DefaultJumpPower
-            hum.HipHeight = DefaultHipHeight
-        end
-    end
-end
-
-ToggleButton.MouseButton1Click:Connect(function()
-    EnablePlayerFeatures(not PlayerEnabled)
-end)
-
 local SpeedBox = Instance.new("TextBox")
 SpeedBox.Size = UDim2.new(0.8, 0, 0, 35)
 SpeedBox.Position = UDim2.new(0.1, 0, 0.2, 0)
-SpeedBox.PlaceholderText = "WalkSpeed"
 SpeedBox.Parent = PlayerContent
 
 local JumpBox = Instance.new("TextBox")
 JumpBox.Size = UDim2.new(0.8, 0, 0, 35)
 JumpBox.Position = UDim2.new(0.1, 0, 0.35, 0)
-JumpBox.PlaceholderText = "JumpPower"
 JumpBox.Parent = PlayerContent
 
 local HeightBox = Instance.new("TextBox")
 HeightBox.Size = UDim2.new(0.8, 0, 0, 35)
 HeightBox.Position = UDim2.new(0.1, 0, 0.5, 0)
-HeightBox.PlaceholderText = "HipHeight"
 HeightBox.Parent = PlayerContent
+
+local function ApplyPlayerStats()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if PlayerEnabled then
+        hum.WalkSpeed = tonumber(SpeedBox.Text) or DefaultWalkSpeed
+        hum.JumpPower = tonumber(JumpBox.Text) or DefaultJumpPower
+        hum.HipHeight = tonumber(HeightBox.Text) or DefaultHipHeight
+    else
+        hum.WalkSpeed = DefaultWalkSpeed
+        hum.JumpPower = DefaultJumpPower
+        hum.HipHeight = DefaultHipHeight
+    end
+end
+
+ToggleButton.MouseButton1Click:Connect(function()
+    PlayerEnabled = not PlayerEnabled
+    ToggleButton.Text = PlayerEnabled and Language[CurrentLang].PlayerToggleOn or Language[CurrentLang].PlayerToggle
+    ToggleButton.BackgroundColor3 = PlayerEnabled and Color3.fromRGB(60, 120, 60) or Color3.fromRGB(120, 60, 60)
+    ApplyPlayerStats()
+end)
 
 local FlyButton = Instance.new("TextButton")
 FlyButton.Size = UDim2.new(0.8, 0, 0, 40)
 FlyButton.Position = UDim2.new(0.1, 0, 0.7, 0)
-FlyButton.Text = "Fly"
 FlyButton.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+FlyButton.TextColor3 = Color3.new(1,1,1)
+FlyButton.Font = Enum.Font.SourceSansBold
+FlyButton.TextSize = 16
 FlyButton.Parent = PlayerContent
 
 FlyButton.MouseButton1Click:Connect(function()
-    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\40\39\104\116\116\112\115\58\47\47\103\105\115\116\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\109\101\111\122\111\110\101\89\84\47\98\102\48\51\55\100\102\102\57\102\48\97\55\48\48\49\55\51\48\52\100\100\100\54\55\102\100\99\100\51\55\48\47\114\97\119\47\101\49\52\101\55\52\102\52\50\53\98\48\54\48\100\102\53\50\51\51\52\51\99\102\51\48\98\55\56\55\48\55\52\101\98\51\99\53\100\50\47\97\114\99\101\117\115\37\50\53\50\48\120\37\50\53\50\48\102\108\121\37\50\53\50\48\50\37\50\53\50\48\111\98\102\108\117\99\97\116\111\114\39\41\44\116\114\117\101\41\41\40\41\10\10")()
+    -- 示例飞行脚本，如有自己的链接请替换
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kai-Hept/refs/heads/main/Fly", true))()
 end)
 
 -- 3. 皮脚本
-local SkinTab = CreateTab("Skin", 2)
+local SkinTab = CreateTab(Language[CurrentLang].Tabs.Skin, 2)
 local SkinContent = Instance.new("Frame")
 SkinContent.Size = UDim2.new(1, 0, 1, 0)
 SkinContent.BackgroundTransparency = 1
@@ -217,7 +245,9 @@ local SkinButton = Instance.new("TextButton")
 SkinButton.Size = UDim2.new(0.8, 0, 0, 45)
 SkinButton.Position = UDim2.new(0.1, 0, 0.3, 0)
 SkinButton.BackgroundColor3 = Color3.fromRGB(100, 60, 150)
-SkinButton.Text = "Execute Skin Script"
+SkinButton.TextColor3 = Color3.new(1,1,1)
+SkinButton.Font = Enum.Font.SourceSansBold
+SkinButton.TextSize = 18
 SkinButton.Parent = SkinContent
 
 SkinButton.MouseButton1Click:Connect(function()
@@ -226,7 +256,7 @@ SkinButton.MouseButton1Click:Connect(function()
 end)
 
 -- 4. 通用脚本
-local GeneralTab = CreateTab("General", 3)
+local GeneralTab = CreateTab(Language[CurrentLang].Tabs.General, 3)
 local GeneralContent = Instance.new("Frame")
 GeneralContent.Size = UDim2.new(1, 0, 1, 0)
 GeneralContent.BackgroundTransparency = 1
@@ -237,14 +267,50 @@ local GeneralButton = Instance.new("TextButton")
 GeneralButton.Size = UDim2.new(0.8, 0, 0, 45)
 GeneralButton.Position = UDim2.new(0.1, 0, 0.3, 0)
 GeneralButton.BackgroundColor3 = Color3.fromRGB(60, 100, 120)
-GeneralButton.Text = "Open Script Center"
+GeneralButton.TextColor3 = Color3.new(1,1,1)
+GeneralButton.Font = Enum.Font.SourceSansBold
+GeneralButton.TextSize = 18
 GeneralButton.Parent = GeneralContent
 
 GeneralButton.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet(CONFIG.GeneralScriptUrl, true))()
 end)
 
--- // ====================== Tab 切换逻辑 ====================== \\
+-- // ====================== UI 刷新与切换 ====================== \\
+local function RefreshUI()
+    TitleLabel.Text = Language[CurrentLang].Title
+    HomeTab.Text = Language[CurrentLang].Tabs.Home
+    PlayerTab.Text = Language[CurrentLang].Tabs.Player
+    SkinTab.Text = Language[CurrentLang].Tabs.Skin
+    GeneralTab.Text = Language[CurrentLang].Tabs.General
+    
+    NoticeLabel.Text = string.format(
+        Language[CurrentLang].HomeNotice,
+        LocalPlayer.DisplayName,
+        LocalPlayer.Name,
+        os.date("%Y-%m-%d %H:%M:%S", os.time() + 8)
+    )
+    
+    ToggleButton.Text = PlayerEnabled and Language[CurrentLang].PlayerToggleOn or Language[CurrentLang].PlayerToggle
+    SpeedBox.PlaceholderText = Language[CurrentLang].Placeholders.Speed
+    JumpBox.PlaceholderText = Language[CurrentLang].Placeholders.Jump
+    HeightBox.PlaceholderText = Language[CurrentLang].Placeholders.Height
+    FlyButton.Text = Language[CurrentLang].Buttons.Fly
+    
+    SkinButton.Text = Language[CurrentLang].Buttons.ExecuteSkin
+    GeneralButton.Text = Language[CurrentLang].Buttons.OpenCenter
+    LangButton.Text = Language[CurrentLang].LangButton
+end
+
+LangButton.MouseButton1Click:Connect(function()
+    CurrentLang = CurrentLang == "CN" and "EN" or "CN"
+    RefreshUI()
+end)
+
+-- 初始化UI文本
+RefreshUI()
+
+-- Tab 切换逻辑
 HomeTab.MouseButton1Click:Connect(function()
     HomeContent.Visible = true
     PlayerContent.Visible = false
@@ -273,4 +339,4 @@ GeneralTab.MouseButton1Click:Connect(function()
     GeneralContent.Visible = true
 end)
 
-print("Old Cat Cheat v2.0 Loaded Successfully!")
+print("Old Cat Cheat v2.1 Loaded Successfully!")
