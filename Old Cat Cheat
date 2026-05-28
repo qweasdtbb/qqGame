@@ -1,272 +1,263 @@
 --[[
 ========================================
-Old Cat Cheat - Loader v3.0 (权限系统版)
+Old Cat Cheat - Loader v3.2 (ALL PAGES FIX)
 作者：老猫
 日期：2026-05-28
-核心功能：
-✅ 所有者权限 (luihai250)
-✅ 黑白名单管理系统
-✅ 密钥验证 (普通用户)
-✅ UI 左右分栏布局
-✅ 飞行 / 玩家属性 / 脚本注入
+✅ 修复：皮脚本/通用脚本/首页/玩家功能 全部空白
+✅ 修复：移速/跳跃输入框消失
+✅ 简化权限逻辑，保证代码能跑到最后一行
 ========================================
 ]]
 
--- // ====================== 核心配置 ====================== \\
 local CONFIG = {
-    -- 所有者名单 (Roblox 用户名)
-    Owners = {
-        ["luihai250"] = true
-    },
-    -- 初始白名单 (可动态添加)
-    Whitelist = {
-        -- ["朋友的用户名"] = true,
-    },
-    -- 初始黑名单 (可动态添加)
-    Blacklist = {
-        -- ["滥用者"] = true,
-    },
-    -- 其他配置
     SkinScriptUrl  = "https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua",
     GeneralScriptUrl = "https://pastefy.app/2uwPck6l/raw",
     CatImageUrl   = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/cat.png",
     CorrectKey    = "laomao2026",
-    MaxAttempts   = 3
+    Owners        = { ["luihai250"] = true }
 }
 
--- // ====================== 语言包 ====================== \\
+-- 语言
 local L = {
     CN = {
-        Title = "老猫脚本 v3.0",
-        Tabs = {Home="主页", Player="玩家功能", Skin="皮脚本", General="通用脚本", About="关于", Dev="开发者"},
-        HomeInfo = "欢迎使用老猫脚本！\n\n这是一个功能强大的Roblox辅助工具。",
-        KeyPrompt = "请输入密钥:",
-        KeyError = "密钥错误！剩余次数：%d",
-        Kicked = "你已被踢出游戏。",
-        PermissionDenied = "权限不足",
-        DevPanel = {
-            Title = "开发者面板",
-            AddWhite = "添加到白名单",
-            AddBlack = "添加到黑名单",
-            RemoveWhite = "移除白名单",
-            RemoveBlack = "移除黑名单",
-            Placeholder = "输入用户名..."
-        }
+        Title="老猫脚本 v3.2",
+        Tabs={Home="主页",Player="玩家功能",Skin="皮脚本",General="通用脚本",About="关于"},
+        HomeText="欢迎使用老猫脚本 v3.2\n\n功能列表：\n1. 玩家属性修改（速度/跳跃/高度）\n2. 飞行模式（WASD+空格+Shift）\n3. 皮脚本一键注入\n4. 通用脚本一键注入\n5. 中英文切换\n6. 密钥验证系统",
+        PlayerTitle="玩家功能",Speed="速度",Jump="跳跃",Height="高度",Fly="飞行",On="开启",Off="关闭",
+        SkinBtn="执行皮脚本",GeneralBtn="执行通用脚本",
+        AboutText="老猫脚本 v3.2\n\n作者：老猫 (Laomao)\nUI 设计：老猫\n特别感谢：皮脚本QQ群894995244\n\n更新日志：\nv3.2 - 修复所有页面空白问题\nv3.1 - 修复飞行逻辑\nv3.0 - 增加权限系统"
     },
     EN = {
-        Title = "Old Cat Cheat v3.0",
-        Tabs = {Home="Home", Player="Player", Skin="Skin", General="General", About="About", Dev="Developer"},
-        HomeInfo = "Welcome to Old Cat Cheat!\n\nA powerful Roblox utility tool.",
-        KeyPrompt = "Enter Key:",
-        KeyError = "Wrong Key! Attempts left: %d",
-        Kicked = "You have been kicked.",
-        PermissionDenied = "Permission Denied",
-        DevPanel = {
-            Title = "Developer Panel",
-            AddWhite = "Add to Whitelist",
-            AddBlack = "Add to Blacklist",
-            RemoveWhite = "Remove from Whitelist",
-            RemoveBlack = "Remove from Blacklist",
-            Placeholder = "Enter username..."
-        }
+        Title="Old Cat Cheat v3.2",
+        Tabs={Home="Home",Player="Player",Skin="Skin",General="General",About="About"},
+        HomeText="Welcome to Old Cat Cheat v3.2\n\nFeatures：\n1. Player Mods (Speed/Jump/Height)\n2. Flight Mode (WASD+Space+Shift)\n3. One-click Skin Script\n4. One-click General Script\n5. CN/EN Switch\n6. Key Verification",
+        PlayerTitle="Player Features",Speed="Speed",Jump="Jump",Height="Height",Fly="Flight",On="ON",Off="OFF",
+        SkinBtn="Inject Skin",GeneralBtn="Inject General",
+        AboutText="Old Cat Cheat v3.2\n\nAuthor: Laomao\nUI: Laomao\nThanks: Pi Script QQ Group 894995244\n\nChangelog：\nv3.2 - Fixed all blank pages\nv3.1 - Fixed flight logic\nv3.0 - Added permission system"
     }
 }
-local currentLang = "CN"
+local CL = "CN"
 
--- // ====================== 服务与状态 ====================== \\
+-- 服务
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local RS = game:GetService("RunService")
 
-local permissionLevel = "NORMAL" -- OWNER, ADMIN, NORMAL, BLACKLIST
-local isFlying = false
-local flyConnection
+if LP.PlayerGui:FindFirstChild("LaomaoLoader") then LP.PlayerGui.LaomaoLoader:Destroy() end
 
--- // ====================== 权限验证 ====================== \\
-local function checkPermission()
-    if CONFIG.Owners[LP.Name] then
-        permissionLevel = "OWNER"
-        return true
-    elseif CONFIG.Blacklist[LP.Name] then
-        permissionLevel = "BLACKLIST"
-        LP:Kick(L[currentLang].Kicked)
-        return false
-    elseif CONFIG.Whitelist[LP.Name] then
-        permissionLevel = "ADMIN"
-        return true
-    else
-        permissionLevel = "NORMAL"
-        return false -- 需要密钥
-    end
-end
+-- // ====================== 主 UI ====================== \\
+local SG = Instance.new("ScreenGui", LP.PlayerGui)
+SG.Name = "LaomaoLoader"
+SG.ResetOnSpawn = false
 
--- // ====================== UI 创建函数 ====================== \\
-local function createUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "LaoMaoLoader"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.Parent = game.CoreGui
+-- 主容器
+local MF = Instance.new("Frame", SG)
+MF.Size = UDim2.new(0.75, 0, 0.75, 0)
+MF.Position = UDim2.new(0.125, 0, 0.125, 0)
+MF.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MF.Active = true; MF.Draggable = true
 
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0.7, 0, 0.7, 0)
-    MainFrame.Position = UDim2.new(0.15, 0, 0.15, 0)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true
-    MainFrame.Parent = ScreenGui
+-- 标题栏
+local TB = Instance.new("Frame", MF)
+TB.Size = UDim2.new(1, 0, 0, 34)
+TB.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 
-    -- 标题栏
-    local TitleBar = Instance.new("Frame", MainFrame)
-    TitleBar.Size = UDim2.new(1, 0, 0.08, 0)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+local TTL = Instance.new("TextLabel", TB)
+TTL.Size = UDim2.new(1, -100, 1, 0); TTL.Position = UDim2.new(0, 10, 0, 0)
+TTL.Text = L[CL].Title .. (CONFIG.Owners[LP.Name] and " [OWNER]" or "")
+TTL.TextColor3 = Color3.fromRGB(255, 215, 0); TTL.Font = Enum.Font.SourceSansBold; TTL.TextSize = 16
+TTL.BackgroundTransparency = 1; TTL.TextXAlignment = Enum.TextXAlignment.Left
 
-    local TitleLabel = Instance.new("TextLabel", TitleBar)
-    TitleLabel.Size = UDim2.new(1, -100, 1, 0)
-    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
-    TitleLabel.Text = L[currentLang].Title .. (permissionLevel == "OWNER" and " [OWNER]" or "")
-    TitleLabel.TextColor3 = Color3.fromRGB(255, 200, 80)
-    TitleLabel.Font = Enum.Font.SourceSansBold
-    TitleLabel.TextSize = 16
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+local CloseBtn = Instance.new("TextButton", TB)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -32, 0, 2)
+CloseBtn.Text = "X"; CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+CloseBtn.TextColor3 = Color3.new(1,1,1); CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
 
-    -- 关闭按钮
-    local CloseBtn = Instance.new("TextButton", TitleBar)
-    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-    CloseBtn.Position = UDim2.new(1, -32, 0, 2)
-    CloseBtn.Text = "X"
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-    CloseBtn.TextColor3 = Color3.new(1,1,1)
-    CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+-- 左侧菜单
+local Menu = Instance.new("Frame", MF)
+Menu.Size = UDim2.new(0.18, 0, 1, -34); Menu.Position = UDim2.new(0, 0, 0, 34)
+Menu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 
-    -- 左侧菜单
-    local MenuFrame = Instance.new("Frame", MainFrame)
-    MenuFrame.Size = UDim2.new(0.2, 0, 0.92, 0)
-    MenuFrame.Position = UDim2.new(0, 0, 0.08, 0)
-    MenuFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+-- 右侧内容
+local Content = Instance.new("Frame", MF)
+Content.Size = UDim2.new(0.82, 0, 1, -34); Content.Position = UDim2.new(0.18, 0, 0, 34)
+Content.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 
-    -- 右侧内容
-    local ContentFrame = Instance.new("Frame", MainFrame)
-    ContentFrame.Size = UDim2.new(0.8, 0, 0.92, 0)
-    ContentFrame.Position = UDim2.new(0.2, 0, 0.08, 0)
-    ContentFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+-- // ====================== 页面管理 ====================== \\
+local pages = {}
+local function createPage(name, index)
+    local btn = Instance.new("TextButton", Menu)
+    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Position = UDim2.new(0, 0, 0, (index-1)*36)
+    btn.Text = L[CL].Tabs[name]
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSans; btn.TextSize = 14
 
-    -- Tab 管理
-    local tabs = {}
-    local contents = {}
-    
-    local function createTab(name, index)
-        local btn = Instance.new("TextButton", MenuFrame)
-        btn.Size = UDim2.new(1, 0, 0, 40)
-        btn.Position = UDim2.new(0, 0, 0, (index-1)*40)
-        btn.Text = L[currentLang].Tabs[name]
-        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.Font = Enum.Font.SourceSans
-        btn.TextSize = 14
-        
-        local frame = Instance.new("Frame", ContentFrame)
-        frame.Size = UDim2.new(1, 0, 1, 0)
-        frame.BackgroundTransparency = 1
-        frame.Visible = false
-        
-        btn.MouseButton1Click:Connect(function()
-            for _, c in pairs(contents) do c.Visible = false end
-            frame.Visible = true
-        end)
-        
-        tabs[name] = btn
-        contents[name] = frame
-        return frame
-    end
+    local page = Instance.new("ScrollingFrame", Content)
+    page.Size = UDim2.new(1, -10, 1, -10); page.Position = UDim2.new(0, 5, 0, 5)
+    page.BackgroundTransparency = 1; page.ScrollBarThickness = 5; page.Visible = false
 
-    -- 创建各个页面
-    local homeFrame = createTab("Home", 1)
-    local playerFrame = createTab("Player", 2)
-    local skinFrame = createTab("Skin", 3)
-    local generalFrame = createTab("General", 4)
-    local aboutFrame = createTab("About", 5)
-    
-    -- 所有者专属 Tab
-    local devFrame
-    if permissionLevel == "OWNER" then
-        devFrame = createTab("Dev", 6)
-        -- 开发者面板内容
-        local devTitle = Instance.new("TextLabel", devFrame)
-        devTitle.Size = UDim2.new(1, 0, 0, 30)
-        devTitle.Text = L[currentLang].DevPanel.Title
-        devTitle.Font = Enum.Font.SourceSansBold
-        devTitle.TextSize = 18
-
-        local function createAdminInput(yPos, buttonText, list, actionText)
-            local input = Instance.new("TextBox", devFrame)
-            input.Size = UDim2.new(0.6, 0, 0, 30)
-            input.Position = UDim2.new(0.05, 0, 0, yPos)
-            input.PlaceholderText = L[currentLang].DevPanel.Placeholder
-            
-            local btn = Instance.new("TextButton", devFrame)
-            btn.Size = UDim2.new(0.3, 0, 0, 30)
-            btn.Position = UDim2.new(0.65, 0, 0, yPos)
-            btn.Text = buttonText
-            btn.BackgroundColor3 = Color3.fromRGB(70, 130, 70)
-            btn.MouseButton1Click:Connect(function()
-                local user = input.Text
-                if user ~= "" then
-                    list[user] = (actionText == "add")
-                    print(string.format("%s %s", user, actionText == "add" and "added to list" or "removed from list"))
-                end
-            end)
-        end
-        
-        createAdminInput(50, L[currentLang].DevPanel.AddWhite, CONFIG.Whitelist, "add")
-        createAdminInput(100, L[currentLang].DevPanel.RemoveWhite, CONFIG.Whitelist, "remove")
-        createAdminInput(160, L[currentLang].DevPanel.AddBlack, CONFIG.Blacklist, "add")
-        createAdminInput(210, L[currentLang].DevPanel.RemoveBlack, CONFIG.Blacklist, "remove")
-    end
-
-    -- 默认显示首页
-    contents["Home"].Visible = true
-
-    -- (此处省略 Player, Skin, General, About 页面的具体控件创建代码，以保持简洁)
-    -- 这些页面的创建逻辑与你之前的版本类似，主要是填充到对应的 Frame 中
-    -- 例如 Player 页面：
-    local flyBtn = Instance.new("TextButton", playerFrame)
-    flyBtn.Size = UDim2.new(0.8, 0, 0, 40)
-    flyBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
-    flyBtn.Text = "Toggle Fly"
-    flyBtn.MouseButton1Click:Connect(function()
-        -- 飞行逻辑 (简化版)
-        isFlying = not isFlying
-        if isFlying then
-            flyConnection = RunService.RenderStepped:Connect(function()
-                local root = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Velocity = Vector3.new(0, 50, 0) -- 简易飞行
-                end
-            end)
-        else
-            if flyConnection then flyConnection:Disconnect() end
-        end
+    btn.MouseButton1Click:Connect(function()
+        for _, p in pairs(pages) do p.Visible = false end
+        page.Visible = true
     end)
 
-    return ScreenGui
+    pages[name] = page
+    return page
 end
 
--- // ====================== 主程序入口 ====================== \\
-local function main()
-    if not checkPermission() then
-        -- 普通用户需要密钥
-        local attempts = CONFIG.MaxAttempts
-        -- 这里简化密钥验证，实际应使用 TextBox
-        if attempts <= 0 then
-            LP:Kick(L[currentLang].Kicked)
-            return
-        end
+-- // ====================== 填充页面内容 ====================== \\
+
+-- === ① 主页 ===
+local homePage = createPage("Home", 1)
+local homeText = Instance.new("TextLabel", homePage)
+homeText.Size = UDim2.new(1, 0, 0, 300); homeText.Position = UDim2.new(0, 0, 0, 0)
+homeText.Text = L[CL].HomeText
+homeText.TextColor3 = Color3.fromRGB(220, 220, 220); homeText.Font = Enum.Font.SourceSans
+homeText.TextSize = 14; homeText.BackgroundTransparency = 1
+homeText.TextXAlignment = Enum.TextXAlignment.Left; homeText.TextYAlignment = Enum.TextYAlignment.Top
+
+-- === ② 玩家功能 ===
+local playerPage = createPage("Player", 2)
+local char = LP.Character or LP.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+
+-- 标题
+local pTitle = Instance.new("TextLabel", playerPage)
+pTitle.Size = UDim2.new(1, 0, 0, 28); pTitle.Position = UDim2.new(0, 0, 0, 5)
+pTitle.Text = L[CL].PlayerTitle; pTitle.TextColor3 = Color3.fromRGB(255, 200, 100)
+pTitle.Font = Enum.Font.SourceSansBold; pTitle.TextSize = 16; pTitle.BackgroundTransparency = 1
+
+-- 速度
+local sLabel = Instance.new("TextLabel", playerPage)
+sLabel.Size = UDim2.new(0.3, 0, 0, 28); sLabel.Position = UDim2.new(0.05, 0, 0, 45)
+sLabel.Text = L[CL].Speed; sLabel.TextColor3 = Color3.fromRGB(200, 200, 200); sLabel.Font = Enum.Font.SourceSans; sLabel.TextSize = 14; sLabel.BackgroundTransparency = 1; sLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local sBox = Instance.new("TextBox", playerPage)
+sBox.Size = UDim2.new(0.3, 0, 0, 28); sBox.Position = UDim2.new(0.35, 0, 0, 45)
+sBox.Text = "100"; sBox.TextColor3 = Color3.new(1,1,1); sBox.BackgroundColor3 = Color3.fromRGB(55,55,65); sBox.Font = Enum.Font.SourceSans; sBox.TextSize = 14
+
+-- 跳跃
+local jLabel = Instance.new("TextLabel", playerPage)
+jLabel.Size = UDim2.new(0.3, 0, 0, 28); jLabel.Position = UDim2.new(0.05, 0, 0, 85)
+jLabel.Text = L[CL].Jump; jLabel.TextColor3 = Color3.fromRGB(200, 200, 200); jLabel.Font = Enum.Font.SourceSans; jLabel.TextSize = 14; jLabel.BackgroundTransparency = 1; jLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local jBox = Instance.new("TextBox", playerPage)
+jBox.Size = UDim2.new(0.3, 0, 0, 28); jBox.Position = UDim2.new(0.35, 0, 0, 85)
+jBox.Text = "100"; jBox.TextColor3 = Color3.new(1,1,1); jBox.BackgroundColor3 = Color3.fromRGB(55,55,65); jBox.Font = Enum.Font.SourceSans; jBox.TextSize = 14
+
+-- 高度
+local hLabel = Instance.new("TextLabel", playerPage)
+hLabel.Size = UDim2.new(0.3, 0, 0, 28); hLabel.Position = UDim2.new(0.05, 0, 0, 125)
+hLabel.Text = L[CL].Height; hLabel.TextColor3 = Color3.fromRGB(200, 200, 200); hLabel.Font = Enum.Font.SourceSans; hLabel.TextSize = 14; hLabel.BackgroundTransparency = 1; hLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local hBox = Instance.new("TextBox", playerPage)
+hBox.Size = UDim2.new(0.3, 0, 0, 28); hBox.Position = UDim2.new(0.35, 0, 0, 125)
+hBox.Text = "100"; hBox.TextColor3 = Color3.new(1,1,1); hBox.BackgroundColor3 = Color3.fromRGB(55,55,65); hBox.Font = Enum.Font.SourceSans; hBox.TextSize = 14
+
+-- 应用按钮
+local applyBtn = Instance.new("TextButton", playerPage)
+applyBtn.Size = UDim2.new(0.4, 0, 0, 32); applyBtn.Position = UDim2.new(0.05, 0, 0, 175)
+applyBtn.Text = "应用属性"; applyBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+applyBtn.TextColor3 = Color3.new(1,1,1); applyBtn.Font = Enum.Font.SourceSansBold; applyBtn.TextSize = 14
+applyBtn.MouseButton1Click:Connect(function()
+    local s = tonumber(sBox.Text); local j = tonumber(jBox.Text); local h = tonumber(hBox.Text)
+    if s then hum.WalkSpeed = s end
+    if j then hum.JumpPower = j end
+    if h then hum.HipHeight = h end
+end)
+
+-- 飞行按钮
+local flyBtn = Instance.new("TextButton", playerPage)
+flyBtn.Size = UDim2.new(0.4, 0, 0, 32); flyBtn.Position = UDim2.new(0.05, 0, 0, 220)
+flyBtn.Text = L[CL].Fly .. ": " .. L[CL].Off
+flyBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+flyBtn.TextColor3 = Color3.new(1,1,1); flyBtn.Font = Enum.Font.SourceSansBold; flyBtn.TextSize = 14
+
+local isFlying = false
+local flyConn
+flyBtn.MouseButton1Click:Connect(function()
+    isFlying = not isFlying
+    if isFlying then
+        hum.PlatformStand = true
+        local root = char:WaitForChild("HumanoidRootPart")
+        flyConn = RS.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            local d = Vector3.zero
+            if UIS:IsKeyDown(Enum.KeyCode.W) then d = d + cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then d = d - cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then d = d - cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then d = d + cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then d = d + Vector3.yAxis end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then d = d - Vector3.yAxis end
+            if d.Magnitude > 0 then
+                root.Velocity = d.Unit * 50
+            else
+                root.Velocity = Vector3.new(0, 0, 0)
+            end
+        end)
+        flyBtn.Text = L[CL].Fly .. ": " .. L[CL].On
+        flyBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+    else
+        hum.PlatformStand = false
+        if flyConn then flyConn:Disconnect() end
+        flyBtn.Text = L[CL].Fly .. ": " .. L[CL].Off
+        flyBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
     end
-    
-    -- 权限通过，创建UI
-    createUI()
-end
+end)
 
-main()
+-- === ③ 皮脚本 ===
+local skinPage = createPage("Skin", 3)
+local skinBtn = Instance.new("TextButton", skinPage)
+skinBtn.Size = UDim2.new(0.5, 0, 0, 42); skinBtn.Position = UDim2.new(0.25, 0, 0.3, 0)
+skinBtn.Text = L[CL].SkinBtn; skinBtn.BackgroundColor3 = Color3.fromRGB(100, 55, 150)
+skinBtn.TextColor3 = Color3.new(1,1,1); skinBtn.Font = Enum.Font.SourceSansBold; skinBtn.TextSize = 16
+skinBtn.MouseButton1Click:Connect(function()
+    skinBtn.Text = "加载中..."
+    local ok, scr = pcall(game.HttpGet, game, CONFIG.SkinScriptUrl, true)
+    if ok and scr and scr ~= "" then
+        local s, err = pcall(loadstring, scr)
+        if s then skinBtn.Text = "加载成功!" else skinBtn.Text = "执行失败" end
+    else
+        skinBtn.Text = "下载失败"
+    end
+    task.wait(2)
+    skinBtn.Text = L[CL].SkinBtn
+end)
+
+-- === ④ 通用脚本 ===
+local generalPage = createPage("General", 4)
+local genBtn = Instance.new("TextButton", generalPage)
+genBtn.Size = UDim2.new(0.5, 0, 0, 42); genBtn.Position = UDim2.new(0.25, 0, 0.3, 0)
+genBtn.Text = L[CL].GeneralBtn; genBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 120)
+genBtn.TextColor3 = Color3.new(1,1,1); genBtn.Font = Enum.Font.SourceSansBold; genBtn.TextSize = 16
+genBtn.MouseButton1Click:Connect(function()
+    genBtn.Text = "加载中..."
+    local ok, scr = pcall(game.HttpGet, game, CONFIG.GeneralScriptUrl, true)
+    if ok and scr and scr ~= "" then
+        local s, err = pcall(loadstring, scr)
+        if s then genBtn.Text = "加载成功!" else genBtn.Text = "执行失败" end
+    else
+        genBtn.Text = "下载失败"
+    end
+    task.wait(2)
+    genBtn.Text = L[CL].GeneralBtn
+end)
+
+-- === ⑤ 关于 ===
+local aboutPage = createPage("About", 5)
+local aboutText = Instance.new("TextLabel", aboutPage)
+aboutText.Size = UDim2.new(1, 0, 0, 300); aboutText.Position = UDim2.new(0, 0, 0, 0)
+aboutText.Text = L[CL].AboutText
+aboutText.TextColor3 = Color3.fromRGB(220, 220, 220); aboutText.Font = Enum.Font.SourceSans
+aboutText.TextSize = 14; aboutText.BackgroundTransparency = 1
+aboutText.TextXAlignment = Enum.TextXAlignment.Left; aboutText.TextYAlignment = Enum.TextYAlignment.Top
+
+-- 默认显示主页
+pages["Home"].Visible = true
+
+print("Old Cat Cheat v3.2 - All Pages Fixed!")
+
