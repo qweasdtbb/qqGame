@@ -1,163 +1,271 @@
 --[[
-================================================
-老猫脚本 Loader v0.09 Final
+========================================================
+Old Cat Cheat - Main.lua
 GitHub : qweasdtbb / qqGame / Old Cat Cheat
-功能 :
- ✅ 白名单(开发者/管理员) → 免密钥
- ✅ 普通用户 → 限时密钥验证
- ✅ 暗黑悬浮UI（无标题栏 / 可拖）
- ✅ loadstring 拉取主脚本
-================================================
+版本   : 0.13 Final
+架构   : Loader 接管 UI 容器
+========================================================
 ]]
 
--- // 服务
-local Players       = game:GetService("Players")
-local RunService    = game:GetService("RunService")
-local UserInputSrv  = game:GetService("UserInputService")
-local CoreGui       = game:GetService("CoreGui")
+----------------------------
+-- 服务 & 全局
+----------------------------
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
-local LP    = Players.LocalPlayer
-local PG    = LP:WaitForChild("PlayerGui")
-local Cam   = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-------------------------------------------------
--- 🔧 配置区（你改这里）
-------------------------------------------------
-local ScriptURL = "https://raw.githubusercontent.com/qweasdtbb/qqGame/main/Old%20Cat%20Cheat/Script.lua"
+----------------------------
+-- 接管 Loader UI
+----------------------------
+local MainContainer = _G.OldCat_GUI_Container
+if not MainContainer then
+    warn("❌ 未找到 UI 容器，请先运行 Loader")
+    return
+end
 
--- 白名单（不区分大小写，自动转小写比对）
-local Whitelist = {
-    ["luihai250"] = true,
-    ["qweasdtbb"] = true,
-    ["admin"]     = true,
-}
+-- 清空 Loader 遗留 UI
+for _,v in ipairs(MainContainer:GetChildren()) do
+    if v:IsA("TextLabel") or v:IsA("TextButton") then
+        v:Destroy()
+    end
+end
 
--- 限时密钥（普通用户用）
-local KEY_DB = {
-    ["luihai250"] = { Key = "LAOMAO-ABC123", Exp = os.time() + 7 * 86400 },
-    -- 可继续加其他普通用户
-}
-
-local MyData = KEY_DB[LP.Name]
-local IsVIP  = Whitelist[string.lower(LP.Name)] == true
-------------------------------------------------
-
--- // ScreenGui
-local SG = Instance.new("ScreenGui")
-SG.Name = "OldCat_Loader"
-SG.ResetOnSpawn = false
-SG.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-SG.IgnoreGuiInset = true
-pcall(function() SG.Parent = CoreGui end)
-if not SG.Parent then SG.Parent = PG end
-
-------------------------------------------------
--- 🎨 UI 构件
-------------------------------------------------
-local function Frame(siz,pos,bg,par)
-    local f=Instance.new("Frame")
-    f.Size=siz f.Position=pos f.BackgroundColor3=bg
-    f.BorderSizePixel=0 f.Parent=par
-    Instance.new("UICorner",f).CornerRadius=UDim.new(0,10)
+----------------------------
+-- UI 构造函数（轻量）
+----------------------------
+local function Frame(props)
+    local f = Instance.new("Frame")
+    for k,v in pairs(props or {}) do f[k] = v end
+    f.BorderSizePixel = 0
+    if props.Corner then
+        Instance.new("UICorner", f).CornerRadius = UDim.new(0, props.Corner)
+    end
+    f.Parent = MainContainer
     return f
 end
 
-local function Label(txt,par,y,clr)
-    clr=clr or Color3.new(1,1,1)
-    local l=Instance.new("TextLabel")
-    l.Size=UDim2.new(1,-30,0,28)
-    l.Position=UDim2.new(0,15,y)
-    l.BackgroundTransparency=1 l.Text=txt
-    l.TextColor3=clr l.Font=Enum.Font.SourceSans
-    l.TextSize=14 l.TextXAlignment=Enum.TextXAlignment.Left
-    l.Parent=par
+local function Label(text, y, color)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1,-20,0,26)
+    l.Position = UDim2.new(0,10,y)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or Color3.fromRGB(255,255,255)
+    l.Font = Enum.Font.SourceSans
+    l.TextSize = 14
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = MainContainer
     return l
 end
 
-local function Btn(txt,par,y,cb)
-    local b=Instance.new("TextButton")
-    b.Size=UDim2.new(1,-30,0,36)
-    b.Position=UDim2.new(0,15,y)
-    b.BackgroundColor3=Color3.fromRGB(0,160,255)
-    b.Text=txt b.TextColor3=Color3.new(1,1,1)
-    b.Font=Enum.Font.SourceSansBold b.TextSize=15
-    b.Parent=par
-    Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+local function Button(text, y, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0,140,0,30)
+    b.Position = UDim2.new(0,10,y)
+    b.BackgroundColor3 = Color3.fromRGB(0,160,255)
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 14
+    b.Parent = MainContainer
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
     b.MouseButton1Click:Connect(cb)
     return b
 end
 
-------------------------------------------------
--- 🪟 主窗口（仿你截图暗黑悬浮）
-------------------------------------------------
-local MF = Frame(UDim2.new(0,400,0,320),UDim2.new(0.5,-200,0.5,-160),
-                 Color3.fromRGB(20,20,20),SG)
-MF.Active=true MF.Draggable=true
+local function Slider(y, text, callback)
+    local frame = Frame{
+        Size = UDim2.new(1,-20,0,34),
+        Position = UDim2.new(0,10,y),
+        BackgroundColor3 = Color3.fromRGB(35,35,35),
+        Corner = 6
+    }
 
--- Logo / 标题
-Label("🐱  Old Cat Cheat  v0.09",MF,12,Color3.fromRGB(0,255,127)).Font=Enum.Font.SourceSansBold
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.6,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 14
+    label.Parent = frame
 
-local Info = Label("",MF,50,Color3.fromRGB(200,200,200))
+    local bar = Frame{
+        Size = UDim2.new(0.35,0,0,18),
+        Position = UDim2.new(0.63,0,0.5,-9),
+        BackgroundColor3 = Color3.fromRGB(60,60,60),
+        Corner = 1,
+        Parent = frame
+    }
 
-local function LaunchScript()
-    Info.Text="⏳ 正在加载脚本..."
-    Info.TextColor3=Color3.fromRGB(255,255,0)
-    local ok,err=pcall(function()
-        loadstring(game:HttpGet(ScriptURL,true))()
+    local fill = Frame{
+        Size = UDim2.new(0,0,1,0),
+        BackgroundColor3 = Color3.fromRGB(0,200,100),
+        Corner = 1,
+        Parent = bar
+    }
+
+    local state = false
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            state = not state
+            TweenService:Create(fill, TweenInfo.new(0.15), {
+                Size = UDim2.new(state and 1 or 0,0,1,0)
+            }):Play()
+            callback(state)
+        end
     end)
-    if ok then
-        Info.Text="✅  注入成功！"
-        Info.TextColor3=Color3.fromRGB(0,255,100)
-        task.wait(1.5)
-        SG:Destroy()
+
+    return function() return state end
+end
+
+----------------------------
+-- 顶部 Tab 栏
+----------------------------
+local TabList = Frame{
+    Size = UDim2.new(0,130,1,-40),
+    Position = UDim2.new(0,0,0,40),
+    BackgroundColor3 = Color3.fromRGB(25,25,25),
+    Corner = 0
+}
+
+local Content = Frame{
+    Size = UDim2.new(1,-130,1,-40),
+    Position = UDim2.new(0,130,0,40),
+    BackgroundColor3 = Color3.fromRGB(15,15,15),
+    Corner = 0
+}
+
+local function CreateTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-10,0,32)
+    btn.Position = UDim2.new(0,5,#TabList:GetChildren()*36)
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 14
+    btn.Parent = TabList
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+
+    local page = Frame{
+        Size = UDim2.new(1,0,1,0),
+        BackgroundColor3 = Color3.fromRGB(15,15,15),
+        Parent = Content
+    }
+    page.Visible = false
+
+    btn.MouseButton1Click:Connect(function()
+        for _,v in ipairs(Content:GetChildren()) do
+            if v:IsA("Frame") then v.Visible = false end
+        end
+        page.Visible = true
+    end)
+
+    return page
+end
+
+----------------------------
+-- 页面创建
+----------------------------
+local HomeTab = CreateTab("🏠 主页")
+local PlayerTab = CreateTab("🎮 玩家")
+local CombatTab = CreateTab("🎯 战斗")
+local VisualTab = CreateTab("👁 视觉")
+
+HomeTab.Visible = true
+
+----------------------------
+-- 🏠 主页
+----------------------------
+Label("👤 用户："..LocalPlayer.Name, 15)
+Label("🐱 Old Cat Cheat v0.13", 45)
+Label("✅ 脚本已成功加载", 75, Color3.fromRGB(0,255,100))
+
+----------------------------
+-- 🎮 玩家功能
+----------------------------
+local flying = false
+Slider(PlayerTab, "飞行", function(s)
+    flying = s
+    if s then
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+            bv.Parent = hrp
+            RunService.RenderStepped:Connect(function()
+                if not flying then return end
+                local dir = Vector3.zero
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += Camera.CFrame.RightVector end
+                bv.Velocity = dir.Magnitude > 0 and dir.Unit * 50 or Vector3.zero
+            end)
+        end
     else
-        Info.Text="❌  加载失败:\n"..tostring(err)
-        Info.TextColor3=Color3.fromRGB(255,60,60)
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+            if bv then bv:Destroy() end
+        end
     end
-end
+end)
 
-------------------------------------------------
--- 👑 VIP / 白名单 → 免密钥
-------------------------------------------------
-if IsVIP then
-    Info.Text="👑  欢迎 "..LP.Name.."（免密钥模式）"
-    Info.TextColor3=Color3.fromRGB(0,200,255)
-    Btn("🚀  启动脚本",MF,90,LaunchScript)
+----------------------------
+-- 🎯 战斗辅助
+----------------------------
+local trigger = false
+Slider(CombatTab, "自动开枪", function(s)
+    trigger = s
+end)
 
-------------------------------------------------
--- 🔐 普通用户 → 密钥验证
-------------------------------------------------
-else
-    Info.Text="请输入你的专属密钥"
-    Info.TextColor3=Color3.fromRGB(200,200,200)
-
-    local KB=Instance.new("TextBox")
-    KB.Size=UDim2.new(1,-30,0,34)
-    KB.Position=UDim2.new(0,15,0,95)
-    KB.BackgroundColor3=Color3.fromRGB(35,35,35)
-    KB.TextColor3=Color3.new(1,1,1)
-    KB.PlaceholderText="LAOMAO-XXXXXX"
-    KB.Font=Enum.Font.SourceSans KB.TextSize=14 KB.Parent=MF
-    Instance.new("UICorner",KB).CornerRadius=UDim.new(0,8)
-
-    local ErrLbl=Label("",MF,138,Color3.fromRGB(255,80,80))
-
-    Btn("🔓  验证 & 启动",MF,170,function()
-        if not MyData then
-            ErrLbl.Text="❌  此账号未分配密钥"
-            return
+RunService.RenderStepped:Connect(function()
+    if trigger then
+        local result = workspace:Raycast(Camera.CFrame.Position, Camera.CFrame.LookVector * 1000)
+        if result then
+            pcall(mouse1click)
         end
-        if os.time()>MyData.Exp then
-            ErrLbl.Text="❌  密钥已过期，联系老猫"
-            return
-        end
-        if KB.Text==MyData.Key then
-            LaunchScript()
-        else
-            ErrLbl.Text="❌  密钥错误"
-        end
-    end)
-end
+    end
+end)
 
-print("✅ Old Cat Loader v0.09 loaded for "..LP.Name)
+----------------------------
+-- 👁 视觉（ESP）
+----------------------------
+local espEnabled = false
+Slider(VisualTab, "ESP", function(s)
+    espEnabled = s
+end)
 
+RunService.RenderStepped:Connect(function()
+    if not espEnabled then return end
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if not plr.Character or not plr.Character:FindFirstChild("Head") then continue end
+        local head = plr.Character.Head
+        if not head:FindFirstChild("ESPLabel") then
+            local bill = Instance.new("BillboardGui")
+            bill.Name = "ESPLabel"
+            bill.Adornee = head
+            bill.Size = UDim2.new(0,100,0,40)
+            bill.AlwaysOnTop = true
+            bill.Parent = head
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1,0,1,0)
+            label.BackgroundTransparency = 1
+            label.Text = plr.Name
+            label.TextColor3 = Color3.fromRGB(255,100,100)
+            label.Font = Enum.Font.SourceSansBold
+            label.TextSize = 14
+            label.Parent = bill
+        end
+    end
+end)
+
+print("✅ Old Cat Cheat v0.13 主脚本已加载")
