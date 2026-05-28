@@ -1,289 +1,114 @@
---[[
-========================================
-老猫脚本 Loader v0.08 Final
-作者：老猫
-日期：2026-05-29
-✅ 单文件 Loader
-✅ 开发者 / 普通用户分流
-✅ 限时密钥
-✅ UI + 所有功能嵌入
-========================================
-]]
+--[[老猫脚本 Loader 0.08v | qweasdtbb/qqGame]]
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local UserInput=game:GetService("UserInputService")
+local CoreGui=game:GetService("CoreGui")
 
--- // 基础服务
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
+local LocalPlayer=Players.LocalPlayer
+local Camera=workspace.CurrentCamera
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Camera = workspace.CurrentCamera
+-- ScreenGui
+local sg=Instance.new("ScreenGui")
+sg.Name="LaoMao"
+sg.ResetOnSpawn=false
+sg.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+sg.IgnoreGuiInset=true
+pcall(function()sg.Parent=CoreGui end)
+if not sg.Parent then sg.Parent=LocalPlayer:WaitForChild("PlayerGui")end
 
--- // 安全检测
-if not game:GetService then return end
-
--- // ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "LaoMao_Loader"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.IgnoreGuiInset = true
-
-pcall(function() ScreenGui.Parent = CoreGui end)
-if not ScreenGui.Parent then ScreenGui.Parent = PlayerGui end
-
-------------------------------------------------
--- 🔐 密钥系统（限时 + 独立账号）
-------------------------------------------------
-local KEY_MAP = {
-    ["luihai250"] = {
-        Key = "LAOMAO-ABC123",
-        Expire = os.time() + 7 * 86400
-    }
+-- 密钥
+local KEYS={
+    ["luihai250"]={Key="LAOMAO-ABC123",Exp=os.time()+7*86400}
 }
+local KD=KEYS[LocalPlayer.Name]
 
-local CORRECT_DATA = KEY_MAP[LocalPlayer.Name]
-
-local function formatTime(rem)
-    local d = math.floor(rem / 86400)
-    local h = math.floor((rem % 86400) / 3600)
-    local m = math.floor((rem % 3600) / 60)
-    return string.format("%dd %02d:%02d", d, h, m)
-end
-
-------------------------------------------------
--- 🧩 UI 构造函数
-------------------------------------------------
-local function CreateFrame(props)
-    local f = Instance.new("Frame")
-    f.Size = props.Size or UDim2.new(1,0,1,0)
-    f.Position = props.Position or UDim2.new(0,0,0,0)
-    f.BackgroundColor3 = props.Bg or Color3.fromRGB(25,25,25)
-    f.BorderSizePixel = 0
-    f.Parent = props.Parent
-    if props.Corner then
-        Instance.new("UICorner", f).CornerRadius = UDim.new(0,props.Corner)
-    end
+-- 工具
+local function Frm(size,pos,bg,parent)
+    local f=Instance.new("Frame")
+    f.Size=size f.Position=pos f.BackgroundColor3=bg f.BorderSizePixel=0 f.Parent=parent
     return f
 end
-
-local function CreateLabel(parent, text, y)
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1,-40,0,26)
-    l.Position = UDim2.new(0,20,y)
-    l.BackgroundTransparency = 1
-    l.Text = text
-    l.TextColor3 = Color3.fromRGB(255,255,255)
-    l.Font = Enum.Font.SourceSans
-    l.TextSize = 14
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Parent = parent
+local function Lbl(text,parent,y)
+    local l=Instance.new("TextLabel")
+    l.Size=UDim2.new(1,-40,0,26) l.Position=UDim2.new(0,20,y)
+    l.BackgroundTransparency=1 l.Text=text l.TextColor3=Color3.new(1,1,1)
+    l.Font=Enum.Font.SourceSans l.TextSize=14 l.Parent=parent
     return l
 end
-
-local function CreateSlider(parent, text, y, callback)
-    local frame = CreateFrame({
-        Size = UDim2.new(1,-40,0,34),
-        Position = UDim2.new(0,20,y),
-        Bg = Color3.fromRGB(35,35,35),
-        Corner = 6,
-        Parent = parent
-    })
-
-    local label = CreateLabel(frame, text, 0)
-    label.Size = UDim2.new(0.6,0,1,0)
-
-    local bar = CreateFrame({
-        Size = UDim2.new(0.35,0,0,18),
-        Position = UDim2.new(0.63,0,0.5,-9),
-        Bg = Color3.fromRGB(60,60,60),
-        Corner = 1,
-        Parent = frame
-    })
-
-    local fill = CreateFrame({
-        Size = UDim2.new(0,0,1,0),
-        Bg = Color3.fromRGB(0,200,100),
-        Corner = 1,
-        Parent = bar
-    })
-
-    local state = false
-    bar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            state = not state
-            TweenService:Create(fill, TweenInfo.new(0.15), {
-                Size = UDim2.new(state and 1 or 0,0,1,0)
-            }):Play()
-            callback(state)
+local function Sld(parent,y,callback)
+    local f=Frm(UDim2.new(1,-40,0,34),UDim2.new(0,20,y),Color3.fromRGB(35,35,35),parent)
+    local s=false
+    f.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then
+            s=not s callback(s)
         end
     end)
-
-    return function() return state end
+    return function()return s end
 end
 
-------------------------------------------------
--- 🔑 密钥验证窗口
-------------------------------------------------
-local KeyFrame = CreateFrame({
-    Size = UDim2.new(0,420,0,260),
-    Position = UDim2.new(0.5,-210,0.5,-130),
-    Bg = Color3.fromRGB(22,22,22),
-    Corner = 12,
-    Parent = ScreenGui
-})
-
-CreateLabel(KeyFrame, "🔐 老猫脚本 0.08v", 10).Font = Enum.Font.SourceSansBold
-CreateLabel(KeyFrame, "当前用户："..LocalPlayer.Name, 40)
-
-local KeyBox = Instance.new("TextBox")
-KeyBox.Size = UDim2.new(0,260,0,34)
-KeyBox.Position = UDim2.new(0.5,-130,0.38,0)
-KeyBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-KeyBox.TextColor3 = Color3.fromRGB(255,255,255)
-KeyBox.PlaceholderText = "请输入你的专属密钥"
-KeyBox.Font = Enum.Font.SourceSans
-KeyBox.TextSize = 14
-KeyBox.Parent = KeyFrame
-Instance.new("UICorner", KeyBox).CornerRadius = UDim.new(0,6)
-
-local Status = CreateLabel(KeyFrame, "", 140)
-
-local Submit = Instance.new("TextButton")
-Submit.Size = UDim2.new(0,140,0,34)
-Submit.Position = UDim2.new(0.5,-70,0.72,0)
-Submit.BackgroundColor3 = Color3.fromRGB(0,160,255)
-Submit.Text = "验证"
-Submit.TextColor3 = Color3.fromRGB(255,255,255)
-Submit.Font = Enum.Font.SourceSansBold
-Submit.TextSize = 14
-Submit.Parent = KeyFrame
-Instance.new("UICorner", Submit).CornerRadius = UDim.new(0,6)
+-- KeyFrame
+local kf=Frm(UDim2.new(0,420,0,260),UDim2.new(0.5,-210,0.5,-130),Color3.fromRGB(22,22,22),sg)
+local kb=Instance.new("TextBox")
+kb.Size=UDim2.new(0,260,0,34) kb.Position=UDim2.new(0.5,-130,0.38,0)
+kb.BackgroundColor3=Color3.fromRGB(30,30,30) kb.TextColor3=Color3.new(1,1,1)
+kb.PlaceholderText="请输入密钥" kb.Font=Enum.Font.SourceSans kb.TextSize=14 kb.Parent=kf
+Lbl("🔐 老猫脚本 0.08v",kf,10)
+Lbl("用户："..LocalPlayer.Name,kf,40)
+local st=Lbl("",kf,140)
 
 local function verify()
-    if not CORRECT_DATA then
-        Status.Text = "❌ 该账号无权限"
-        task.wait(1.5)
-        LocalPlayer:Kick("请联系老猫作者")
-        return
-    end
-
-    if os.time() > CORRECT_DATA.Expire then
-        Status.Text = "❌ 密钥已过期"
-        task.wait(1.5)
-        LocalPlayer:Kick("密钥已过期")
-        return
-    end
-
-    if KeyBox.Text == CORRECT_DATA.Key then
-        KeyFrame:Destroy()
-        loadMainUI()
-    else
-        Status.Text = "❌ 密钥错误"
-        task.wait(1.5)
-        LocalPlayer:Kick("请联系老猫作者")
-    end
+    if not KD then st.Text="无权限"return end
+    if os.time()>KD.Exp then st.Text="已过期"return end
+    if kb.Text==KD.Key then kf:Destroy() main() else st.Text="密钥错误" end
 end
 
-Submit.MouseButton1Click:Connect(verify)
-KeyBox.FocusLost:Connect(function(e) if e then verify() end end)
+local btn=Instance.new("TextButton")
+btn.Size=UDim2.new(0,140,0,34) btn.Position=UDim2.new(0.5,-70,0.72,0)
+btn.BackgroundColor3=Color3.fromRGB(0,160,255) btn.Text="验证"
+btn.TextColor3=Color3.new(1,1,1) btn.Font=Enum.Font.SourceSansBold btn.TextSize=14 btn.Parent=kf
+btn.MouseButton1Click:Connect(verify)
 
-------------------------------------------------
--- 🧠 主 UI（功能全部嵌入）
-------------------------------------------------
-function loadMainUI()
-    local MainFrame = CreateFrame({
-        Size = UDim2.new(0,600,0,420),
-        Position = UDim2.new(0.5,-300,0.5,-210),
-        Bg = Color3.fromRGB(20,20,20),
-        Corner = 12,
-        Parent = ScreenGui
-    })
+-- 主 UI
+function main()
+    local mf=Frm(UDim2.new(0,600,0,420),UDim2.new(0.5,-300,0.5,-210),Color3.fromRGB(20,20,20),sg)
+    local tl=Frm(UDim2.new(0,130,1,-46),UDim2.new(0,0,0,46),Color3.fromRGB(25,25,25),mf)
+    local ct=Frm(UDim2.new(1,-130,1,-46),UDim2.new(0,130,0,46),Color3.fromRGB(15,15,15),mf)
 
-    -- 标题栏
-    local TitleBar = CreateFrame({
-        Size = UDim2.new(1,0,0,46),
-        Bg = Color3.fromRGB(35,35,35),
-        Corner = 12,
-        Parent = MainFrame
-    })
-
-    CreateLabel(TitleBar, "🐱 老猫脚本 0.08v", 0).Font = Enum.Font.SourceSansBold
-
-    -- Tab 栏
-    local TabList = CreateFrame({
-        Size = UDim2.new(0,130,1,-46),
-        Bg = Color3.fromRGB(25,25,25),
-        Parent = MainFrame
-    })
-
-    local Content = CreateFrame({
-        Size = UDim2.new(1,-130,1,-46),
-        Position = UDim2.new(0,130,0,46),
-        Bg = Color3.fromRGB(15,15,15),
-        Parent = MainFrame
-    })
-
-    local function CreateTab(name)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1,-10,0,32)
-        btn.Position = UDim2.new(0,5,#TabList:GetChildren()*36)
-        btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-        btn.Text = name
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.SourceSans
-        btn.TextSize = 14
-        btn.Parent = TabList
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-
-        local page = CreateFrame({
-            Size = UDim2.new(1,0,1,0),
-            Bg = Color3.fromRGB(15,15,15),
-            Parent = Content
-        })
-        page.Visible = false
-
-        btn.MouseButton1Click:Connect(function()
-            for _,v in ipairs(Content:GetChildren()) do
-                if v:IsA("Frame") then v.Visible = false end
-            end
-            page.Visible = true
+    local function Tab(name)
+        local b=Instance.new("TextButton")
+        b.Size=UDim2.new(1,-10,0,32) b.Position=UDim2.new(0,5,#tl:GetChildren()*36)
+        b.BackgroundColor3=Color3.fromRGB(40,40,40) b.Text=name
+        b.TextColor3=Color3.new(1,1,1) b.Font=Enum.Font.SourceSans b.TextSize=14 b.Parent=tl
+        local p=Frm(UDim2.new(1,0,1,0),UDim2.new(0,0,0,0),Color3.fromRGB(15,15,15),ct)
+        p.Visible=false
+        b.MouseButton1Click:Connect(function()
+            for _,v in ipairs(ct:GetChildren())do if v:IsA("Frame")then v.Visible=false end end
+            p.Visible=true
         end)
-
-        return page
+        return p
     end
 
-    local HomeTab = CreateTab("🏠 主页")
-    local CombatTab = CreateTab("🎯 战斗")
-    local PlayerTab = CreateTab("🎮 玩家")
+    local cm=Tab("🎯 战斗") local pl=Tab("🎮 玩家") local hm=Tab("🏠 主页")
+    hm.Visible=true
 
-    -- ===== 主页 =====
-    CreateLabel(HomeTab, "👤 用户："..LocalPlayer.Name, 20)
-    CreateLabel(HomeTab, "⏳ 剩余时间："..formatTime(CORRECT_DATA.Expire - os.time()), 50)
+    -- 主页
+    Lbl("用户："..LocalPlayer.Name,hm,20)
+    local rem=KD.Exp-os.time()
+    Lbl("剩余："..math.floor(rem/86400).."天",hm,50)
 
-    -- ===== 战斗辅助 =====
-    local trigger = false
-    CreateSlider(CombatTab, "自动开枪", 20, function(s) trigger = s end)
-
-    RunService.RenderStepped:Connect(function()
-        if trigger then
-            local result = workspace:Raycast(
-                Camera.CFrame.Position,
-                Camera.CFrame.LookVector * 1000
-            )
-            if result then mouse1click() end
+    -- 战斗
+    Sld(cm,20,function(s)
+        if s then
+            RunService.RenderStepped:Connect(function()
+                local r=workspace:Raycast(Camera.CFrame.Position,Camera.CFrame.LookVector*1000)
+                if r then pcall(function() mouse1click()end) end
+            end)
         end
     end)
 
-    -- ===== 玩家功能 =====
-    CreateSlider(PlayerTab, "飞行", 20, function(s)
-        -- 简化示例
-    end)
-
-    HomeTab.Visible = true
+    -- 玩家
+    Sld(pl,20,function(s) end) -- 飞行预留
     print("✅ 老猫脚本 0.08v 已加载")
 end
 
-print("✅ Loader 0.08v 已注入")
+print("✅ Loader 0.08v by qweasdtbb")
