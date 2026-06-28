@@ -1,123 +1,188 @@
-local P="Laomao Hub"local Players=game:GetService("Players")local UIS=game:GetService("UserInputService")local TS=game:GetService("TweenService")local LP=Players.LocalPlayer local C=LP.Character or LP.CharacterAdded:Wait()local RP=C:WaitForChild("HumanoidRootPart")local LG=Instance.new("ScreenGui")LG.Name="Laomao_Loader"LG.ResetOnSpawn=false LG.IgnoreGuiInset=true LG.ZIndexBehavior=Enum.ZIndexBehavior.Global LG.Parent=game.CoreGui
+--// ╔══════════════════════════════════════╗
+--// ║     🐱 老猫 Loader · 修复稳定版        ║
+--// ╚══════════════════════════════════════╝
+
+-- 保险栓：等游戏完全加载
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+task.wait(3)
+
+-- 服务
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 等 PlayerGui（防止 nil）
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
+if not PlayerGui then return end
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Laomao_Loader"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
 
 -- 背景
-local BD=Instance.new("Frame")BD.Size=UDim2.new(1,0,1,0)BD.BackgroundColor3=Color3.fromRGB(0,0,0)BD.BackgroundTransparency=1 BD.ZIndex=9998 BD.Parent=LG
+local Backdrop = Instance.new("Frame")
+Backdrop.Size = UDim2.new(1, 0, 1, 0)
+Backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Backdrop.BackgroundTransparency = 0.4
+Backdrop.ZIndex = 9998
+Backdrop.Parent = ScreenGui
+
+-- 主框
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 340, 0, 170)
+MainFrame.Position = UDim2.new(0.5, -170, 0.5, -85)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+MainFrame.ZIndex = 10000
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(255, 180, 80)
+Stroke.Thickness = 2
+Stroke.Parent = MainFrame
+
+-- 标题
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 8)
+Title.BackgroundTransparency = 1
+Title.Text = "🐱 Laomao Hub  |  QQ群:1042648084"
+Title.TextColor3 = Color3.fromRGB(255, 200, 100)
+Title.TextSize = 15
+Title.Font = Enum.Font.GothamBold
+Title.ZIndex = 10001
+Title.Parent = MainFrame
 
 -- 密码框
-local PF=Instance.new("Frame")PF.Size=UDim2.new(0,340,0,170)PF.Position=UDim2.new(0.5,-170,0.5,-85)PF.BackgroundColor3=Color3.fromRGB(25,25,40)PF.Visible=true PF.ZIndex=10000 PF.Parent=LG
-Instance.new("UICorner").CornerRadius=UDim.new(0,12) PF.Parent
-local PFS=Instance.new("UIStroke")PFS.Color=Color3.fromRGB(255,180,80) PFS.Thickness=2 PFS.Parent=PF
+local Input = Instance.new("TextBox")
+Input.Size = UDim2.new(0, 280, 0, 34)
+Input.Position = UDim2.new(0.5, -140, 0, 52)
+Input.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+Input.Text = ""
+Input.PlaceholderText = "Enter Password..."
+Input.TextColor3 = Color3.new(1, 1, 1)
+Input.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+Input.TextSize = 14
+Input.Font = Enum.Font.Gotham
+Input.ClearTextOnFocus = true
+Input.ZIndex = 10001
+Input.Parent = MainFrame
 
-local PT=Instance.new("TextLabel")PT.Size=UDim2.new(1,-20,0,30)PT.Position=UDim2.new(0,10,0,8)PT.BackgroundTransparency=1 PT.Text="🐱 Laomao Hub  |  QQ群:1042648084"PT.TextColor3=Color3.fromRGB(255,200,100)PT.TextSize=15 PT.Font=Enum.Font.GothamBold PT.ZIndex=10001 PT.Parent=PF
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 6)
+InputCorner.Parent = Input
 
-local PI=Instance.new("TextBox")PI.Size=UDim2.new(0,280,0,34)PI.Position=UDim2.new(0.5,-140,0,52)PI.BackgroundColor3=Color3.fromRGB(40,40,60)PI.Text=""PI.PlaceholderText="Enter Password..."PI.TextColor3=Color3.new(1,1,1)PI.PlaceholderColor3=Color3.fromRGB(120,120,120)PI.TextSize=14 PI.Font=Enum.Font.Gotham PI.ClearTextOnFocus=true PI.ZIndex=10001 PI.Parent=PF
-Instance.new("UICorner").CornerRadius=UDim.new(0,6) PI.Parent
+-- 模式选择
+local mode = nil
 
--- 选择按钮（主脚本 / 键盘脚本）
-local mode=nil
-local MB=Instance.new("TextButton")MB.Size=UDim2.new(0,130,0,26)MB.Position=UDim2.new(0.5,-135,0,96)MB.BackgroundColor3=Color3.fromRGB(50,80,50)MB.Text="主脚本"MB.TextColor3=Color3.new(1,1,1)MB.TextSize=12 MB.Font=Enum.Font.GothamBold MB.ZIndex=10001 MB.Parent=PF
-Instance.new("UICorner").CornerRadius=UDim.new(0,6) MB.Parent
+local MainBtn = Instance.new("TextButton")
+MainBtn.Size = UDim2.new(0, 130, 0, 26)
+MainBtn.Position = UDim2.new(0.5, -135, 0, 96)
+MainBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 50)
+MainBtn.Text = "主脚本"
+MainBtn.TextColor3 = Color3.new(1, 1, 1)
+MainBtn.TextSize = 12
+MainBtn.Font = Enum.Font.GothamBold
+MainBtn.ZIndex = 10001
+MainBtn.Parent = MainFrame
 
-local KB=Instance.new("TextButton")KB.Size=UDim2.new(0,130,0,26)KB.Position=UDim2.new(0.5,5,0,96)KB.BackgroundColor3=Color3.fromRGB(50,50,70)KB.Text="键盘脚本"KB.TextColor3=Color3.fromRGB(180,180,180)KB.TextSize=12 KB.Font=Enum.Font.GothamBold KB.ZIndex=10001 KB.Parent=PF
-Instance.new("UICorner").CornerRadius=UDim.new(0,6) KB.Parent
+local MainCorner2 = Instance.new("UICorner")
+MainCorner2.CornerRadius = UDim.new(0, 6)
+MainCorner2.Parent = MainBtn
 
-MB.MouseButton1Click:Connect(function()mode="main"MB.BackgroundColor3=Color3.fromRGB(50,80,50)MB.TextColor3=Color3.new(1,1,1)KB.BackgroundColor3=Color3.fromRGB(50,50,70)KB.TextColor3=Color3.fromRGB(180,180,180)end)
-KB.MouseButton1Click:Connect(function()mode="keyboard"KB.BackgroundColor3=Color3.fromRGB(50,80,50)KB.TextColor3=Color3.new(1,1,1)MB.BackgroundColor3=Color3.fromRGB(50,50,70)MB.TextColor3=Color3.fromRGB(180,180,180)end)
+local KeyBtn = Instance.new("TextButton")
+KeyBtn.Size = UDim2.new(0, 130, 0, 26)
+KeyBtn.Position = UDim2.new(0.5, 5, 0, 96)
+KeyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+KeyBtn.Text = "键盘脚本"
+KeyBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+KeyBtn.TextSize = 12
+KeyBtn.Font = Enum.Font.GothamBold
+KeyBtn.ZIndex = 10001
+KeyBtn.Parent = MainFrame
 
-local PB=Instance.new("TextButton")PB.Size=UDim2.new(0,130,0,30)PB.Position=UDim2.new(0.5,-65,0,130)PB.BackgroundColor3=Color3.fromRGB(60,100,60)PB.Text="解锁"PB.TextColor3=Color3.new(1,1,1)PB.TextSize=14 PB.Font=Enum.Font.GothamBold PB.ZIndex=10001 PB.Parent=PF
-Instance.new("UICorner").CornerRadius=UDim.new(0,6) PB.Parent
+local KeyCorner = Instance.new("UICorner")
+KeyCorner.CornerRadius = UDim.new(0, 6)
+KeyCorner.Parent = KeyBtn
 
-local PE=Instance.new("TextLabel")PE.Size=UDim2.new(1,-20,0,18)PE.Position=UDim2.new(0,10,0,152)PE.BackgroundTransparency=1 PE.Text=""PE.TextColor3=Color3.fromRGB(255,80,80)PE.TextSize=11 PE.Font=Enum.Font.Gotham PE.ZIndex=10001 PE.Parent=PF
+MainBtn.MouseButton1Click:Connect(function()
+    mode = "main"
+    MainBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 50)
+    MainBtn.TextColor3 = Color3.new(1, 1, 1)
+    KeyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    KeyBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+end)
 
--- 欢迎框
-local WF=Instance.new("Frame")WF.Size=UDim2.new(0,560,0,90)WF.Position=UDim2.new(0,-580,0.5,-45)WF.BackgroundColor3=Color3.fromRGB(20,20,35)WF.BackgroundTransparency=1 WF.ZIndex=9999 WF.Visible=false WF.Parent=LG
-Instance.new("UICorner").CornerRadius=UDim.new(0,14) WF.Parent
-local WFS=Instance.new("UIStroke")WFS.Color=Color3.fromRGB(255,180,80) WFS.Thickness=2 WFS.Transparency=1 WFS.Parent=WF
+KeyBtn.MouseButton1Click:Connect(function()
+    mode = "keyboard"
+    KeyBtn.BackgroundColor3 = Color3.fromRGB(50, 80, 50)
+    KeyBtn.TextColor3 = Color3.new(1, 1, 1)
+    MainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    MainBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+end)
 
-local WT=Instance.new("TextLabel")WT.Size=UDim2.new(1,0,1,0)WT.BackgroundTransparency=1 WT.Text="🐱 欢迎使用老猫脚本"WT.TextColor3=Color3.fromRGB(255,200,100)WT.TextSize=30 WT.Font=Enum.Font.GothamBold WT.ZIndex=10000 WT.Parent=WF
-Instance.new("UIStroke").Color=Color3.fromRGB(0,0,0) WT.Parent
+-- 解锁按钮
+local UnlockBtn = Instance.new("TextButton")
+UnlockBtn.Size = UDim2.new(0, 130, 0, 30)
+UnlockBtn.Position = UDim2.new(0.5, -65, 0, 130)
+UnlockBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+UnlockBtn.Text = "解锁"
+UnlockBtn.TextColor3 = Color3.new(1, 1, 1)
+UnlockBtn.TextSize = 14
+UnlockBtn.Font = Enum.Font.GothamBold
+UnlockBtn.ZIndex = 10001
+UnlockBtn.Parent = MainFrame
 
--- 启动按钮
-local SB=Instance.new("TextButton")SB.Size=UDim2.new(0,200,0,50)SB.Position=UDim2.new(0.5,-100,0.5,80)SB.BackgroundColor3=Color3.fromRGB(30,30,50)SB.BackgroundTransparency=1 SB.Text="启动主脚本"SB.TextColor3=Color3.fromRGB(255,200,100)SB.TextSize=22 SB.Font=Enum.Font.GothamBold SB.ZIndex=10001 SB.Visible=false SB.Parent=LG
-Instance.new("UICorner").CornerRadius=UDim.new(0,10) SB.Parent
-local SBS=Instance.new("UIStroke")SBS.Color=Color3.fromRGB(255,180,80) SBS.Thickness=2 SBS.Transparency=1 SBS.Parent=SB
+local UnlockCorner = Instance.new("UICorner")
+UnlockCorner.CornerRadius = UDim.new(0, 6)
+UnlockCorner.Parent = UnlockBtn
 
-local vp=workspace.CurrentCamera.ViewportSize
-local cx,cy=vp.X/2,vp.Y/2
+-- 错误提示
+local ErrorLabel = Instance.new("TextLabel")
+ErrorLabel.Size = UDim2.new(1, -20, 0, 18)
+ErrorLabel.Position = UDim2.new(0, 10, 0, 152)
+ErrorLabel.BackgroundTransparency = 1
+ErrorLabel.Text = ""
+ErrorLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+ErrorLabel.TextSize = 11
+ErrorLabel.Font = Enum.Font.Gotham
+ErrorLabel.ZIndex = 10001
+ErrorLabel.Parent = MainFrame
 
--- 猫爪粒子
-local pts={}
-for i=1,12 do
-    local a=(i/12)*math.pi*2 local d=120+math.random(30,80)
-    local px=cx+math.cos(a)*d-280 local py=cy+math.sin(a)*d-45
-    local s=18+math.random(8,16)
-    local paw=Instance.new("Frame")paw.Size=UDim2.new(0,s,0,s)paw.Position=UDim2.new(0,px,0,py)paw.BackgroundColor3=Color3.fromRGB(255,180,80)paw.BackgroundTransparency=1 paw.ZIndex=9997 paw.Parent=LG
-    Instance.new("UICorner").CornerRadius=UDim.new(1,0) paw.Parent
-    local pads={}
-    for _,pd in pairs({{0,-s*0.3,s*0.28},{ -s*0.3,s*0.2,s*0.2},{s*0.05,s*0.25,s*0.18},{s*0.3,s*0.2,s*0.2}})do
-        local pad=Instance.new("Frame")pad.Size=UDim2.new(0,pd[3],0,pd[3])pad.Position=UDim2.new(0,pd[1]+s/2-pd[3]/2,0,pd[2]+s/2-pd[3]/2)pad.BackgroundColor3=Color3.fromRGB(255,200,100)pad.BackgroundTransparency=1 pad.ZIndex=9997 pad.Parent=LG
-        Instance.new("UICorner").CornerRadius=UDim.new(1,0) pad.Parent
-        table.insert(pads,pad)
+-- 点击解锁
+UnlockBtn.MouseButton1Click:Connect(function()
+    if not mode then
+        ErrorLabel.Text = "请先选择脚本类型"
+        task.wait(1.5)
+        ErrorLabel.Text = ""
+        return
     end
-    table.insert(pts,{paw=paw,pads=pads,d=i*0.12})
-end
 
--- 50% 猫脸
-local showCF=math.random()<0.5 local CF
-if showCF then
-    CF=Instance.new("Frame")CF.Size=UDim2.new(0,100,0,100)CF.Position=UDim2.new(0,cx-50,0,cy-80)CF.BackgroundTransparency=1 CF.ZIndex=10001 CF.Parent=LG
-    local h=Instance.new("Frame")h.Size=UDim2.new(0,80,0,80)h.Position=UDim2.new(0,10,0,5)h.BackgroundColor3=Color3.fromRGB(255,200,100)h.BackgroundTransparency=1 h.ZIndex=10001 h.Parent=CF
-    Instance.new("UICorner").CornerRadius=UDim.new(1,0) h.Parent
-    for _,d in pairs({{8,-10},{50,-10}})do local e=Instance.new("Frame")e.Size=UDim2.new(0,22,0,22)e.Position=UDim2.new(0,d[1],0,d[2])e.BackgroundColor3=Color3.fromRGB(255,180,80)e.BackgroundTransparency=1 e.Rotation=45 e.ZIndex=10001 e.Parent=CF Instance.new("UICorner").CornerRadius=UDim.new(0,4) e.Parent end
-    for _,d in pairs({{22,25},{46,25}})do local e=Instance.new("Frame")e.Size=UDim2.new(0,12,0,14)e.Position=UDim2.new(0,d[1],0,d[2])e.BackgroundColor3=Color3.fromRGB(30,30,30)e.BackgroundTransparency=1 e.ZIndex=10002 e.Parent=CF Instance.new("UICorner").CornerRadius=UDim.new(1,0) e.Parent end
-    local ns=Instance.new("Frame")ns.Size=UDim2.new(0,10,0,7)ns.Position=UDim2.new(0,35,0,44)ns.BackgroundColor3=Color3.fromRGB(255,150,150)ns.BackgroundTransparency=1 ns.ZIndex=10002 ns.Parent=CF Instance.new("UICorner").CornerRadius=UDim.new(1,0) ns.Parent
-    for _,d in pairs({{28,55},{40,55}})do local m=Instance.new("Frame")m.Size=UDim2.new(0,12,0,2)m.Position=UDim2.new(0,d[1],0,d[2])m.BackgroundColor3=Color3.fromRGB(30,30,30)m.BackgroundTransparency=1 m.Rotation=(d[1]==28 and -15 or 15) m.ZIndex=10002 m.Parent=CF end
-end
-
--- 密码验证
-PB.MouseButton1Click:Connect(function()
-    if not mode then PE.Text="请先选择脚本类型"task.wait(1.5)PE.Text="" return end
-    if PI.Text==P then
-        PE.Text="" TS:Create(PF,TweenInfo.new(0.3),{BackgroundTransparency=1}):Play()
-        for _,c in pairs(PF:GetDescendants())do if c:IsA("Frame")or c:IsA("TextBox")or c:IsA("TextButton")or c:IsA("TextLabel")then TS:Create(c,TweenInfo.new(0.3),{BackgroundTransparency=1,TextTransparency=1}):Play()end end
-        task.wait(0.4) PF.Visible=false
-        TS:Create(BD,TweenInfo.new(0.5),{BackgroundTransparency=0.7}):Play()
-        task.wait(0.5)
-        for _,p in pairs(pts)do task.wait(p.d)TS:Create(p.paw,TweenInfo.new(0.4),{BackgroundTransparency=0.3}):Play()for _,pad in pairs(p.pads)do TS:Create(pad,TweenInfo.new(0.4),{BackgroundTransparency=0.4}):Play()end end
-        task.wait(0.5)
-        WF.Visible=true
-        TS:Create(WF,TweenInfo.new(0.7,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{Position=UDim2.new(0,cx-280,0.5,-45),BackgroundTransparency=0.1}):Play()
-        TS:Create(WFS,TweenInfo.new(0.7),{Transparency=0}):Play()
-        task.wait(0.8)
-        if CF then
-            TS:Create(CF:FindFirstChildWhichIsA("Frame"),TweenInfo.new(0.5),{BackgroundTransparency=0.2}):Play()
-            for _,o in pairs(CF:GetDescendants())do if o:IsA("Frame")then TS:Create(o,TweenInfo.new(0.4),{BackgroundTransparency=0.3}):Play()end end
-            task.wait(0.5)
+    if Input.Text == "Laomao Hub" then
+        ScreenGui:Destroy()
+        if mode == "keyboard" then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/qweasdtbb/qqGame/main/FE键盘脚本.lua"))()
+        else
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/qweasdtbb/qqGame/main/老猫脚本QQ群1042648084.lua"))()
         end
-        task.wait(2)
-        for _,p in pairs(pts)do TS:Create(p.paw,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play()for _,pad in pairs(p.pads)do TS:Create(pad,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play()end end
-        if CF then for _,o in pairs(CF:GetDescendants())do if o:IsA("Frame")then TS:Create(o,TweenInfo.new(0.3),{BackgroundTransparency=1}):Play()end end end
-        SB.Visible=true
-        if mode=="keyboard" then SB.Text="启动键盘脚本" end
-        TS:Create(SB,TweenInfo.new(0.5),{BackgroundTransparency=0.1,TextTransparency=0}):Play()
-        TS:Create(SBS,TweenInfo.new(0.5),{Transparency=0}):Play()
     else
-        PE.Text="密码错误，请重试"
-        TS:Create(PI,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(80,20,20)}):Play()
+        ErrorLabel.Text = "密码错误"
+        TweenService:Create(Input, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(80, 20, 20)}):Play()
         task.wait(0.1)
-        TS:Create(PI,TweenInfo.new(0.3),{BackgroundColor3=Color3.fromRGB(40,40,60)}):Play()
+        TweenService:Create(Input, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}):Play()
     end
 end)
 
-PI.FocusLost:Connect(function(ep)if ep then PB.MouseButton1Click:Fire()end end)
-
--- 启动脚本
-SB.MouseButton1Click:Connect(function()
-    TS:Create(LG,TweenInfo.new(0.6),{BackgroundTransparency=1}):Play()
-    task.wait(0.6) LG:Destroy()
-    if mode=="keyboard"then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/qweasdtbb/qqGame/main/FE键盘脚本.lua"))()
-    else
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/qweasdtbb/qqGame/main/老猫脚本QQ群1042648084.lua"))()
+Input.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        UnlockBtn.MouseButton1Click:Fire()
     end
 end)
