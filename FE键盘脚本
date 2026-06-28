@@ -1,752 +1,192 @@
 --=========================================================
--- ⌨️ Roblox 键鼠模拟脚本
+-- ⌨️ Roblox 键盘模拟脚本（稳定版）
 -- 作者: GPT | 2026-03-07
--- 功能: 模拟键盘按键 + 鼠标移动/点击 | 可开关
--- 兼容: Synapse X / KRNL / Wave / Delta
+-- 兼容: Delta / KRNL / Synapse / Wave
+-- 特点: UI 一定显示 / 不依赖 Http / 不依赖 GitHub
 --=========================================================
 
 -- ===============================
--- 服务引用
+-- 服务
 -- ===============================
 local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
 local Players = game:GetService("Players")
+local Run = game:GetService("RunService")
+
 local Plr = Players.LocalPlayer
-local Mouse = Plr:GetMouse()
+local PG = Plr:WaitForChild("PlayerGui")
 
 -- ===============================
--- 状态变量
--- ===============================
-local isEnabled = false
-local isRunning = false
-
--- 键盘状态（记录哪些键被按下）
-local keyStates = {}
-
--- 鼠标状态
-local mouseStates = {
-    leftDown = false,
-    rightDown = false,
-    middleDown = false,
-    position = Vector2.new(0, 0),
-    delta = Vector2.new(0, 0),
-}
-
--- 按键映射表
-local KEY_MAP = {
-    -- 字母
-    ["A"] = Enum.KeyCode.A, ["B"] = Enum.KeyCode.B, ["C"] = Enum.KeyCode.C,
-    ["D"] = Enum.KeyCode.D, ["E"] = Enum.KeyCode.E, ["F"] = Enum.KeyCode.F,
-    ["G"] = Enum.KeyCode.G, ["H"] = Enum.KeyCode.H, ["I"] = Enum.KeyCode.I,
-    ["J"] = Enum.KeyCode.J, ["K"] = Enum.KeyCode.K, ["L"] = Enum.KeyCode.L,
-    ["M"] = Enum.KeyCode.M, ["N"] = Enum.KeyCode.N, ["O"] = Enum.KeyCode.O,
-    ["P"] = Enum.KeyCode.P, ["Q"] = Enum.KeyCode.Q, ["R"] = Enum.KeyCode.R,
-    ["S"] = Enum.KeyCode.S, ["T"] = Enum.KeyCode.T, ["U"] = Enum.KeyCode.U,
-    ["V"] = Enum.KeyCode.V, ["W"] = Enum.KeyCode.W, ["X"] = Enum.KeyCode.X,
-    ["Y"] = Enum.KeyCode.Y, ["Z"] = Enum.KeyCode.Z,
-    -- 数字
-    ["0"] = Enum.KeyCode.Zero, ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two,
-    ["3"] = Enum.KeyCode.Three, ["4"] = Enum.KeyCode.Four, ["5"] = Enum.KeyCode.Five,
-    ["6"] = Enum.KeyCode.Six, ["7"] = Enum.KeyCode.Seven, ["8"] = Enum.KeyCode.Eight,
-    ["9"] = Enum.KeyCode.Nine,
-    -- 功能键
-    ["F1"] = Enum.KeyCode.F1, ["F2"] = Enum.KeyCode.F2, ["F3"] = Enum.KeyCode.F3,
-    ["F4"] = Enum.KeyCode.F4, ["F5"] = Enum.KeyCode.F5, ["F6"] = Enum.KeyCode.F6,
-    ["F7"] = Enum.KeyCode.F7, ["F8"] = Enum.KeyCode.F8, ["F9"] = Enum.KeyCode.F9,
-    ["F10"] = Enum.KeyCode.F10, ["F11"] = Enum.KeyCode.F11, ["F12"] = Enum.KeyCode.F12,
-    -- 方向键
-    ["UP"] = Enum.KeyCode.Up, ["DOWN"] = Enum.KeyCode.Down,
-    ["LEFT"] = Enum.KeyCode.Left, ["RIGHT"] = Enum.KeyCode.Right,
-    -- 控制键
-    ["SPACE"] = Enum.KeyCode.Space, ["ENTER"] = Enum.KeyCode.Return,
-    ["ESC"] = Enum.KeyCode.Escape, ["TAB"] = Enum.KeyCode.Tab,
-    ["SHIFT"] = Enum.KeyCode.LeftShift, ["CTRL"] = Enum.KeyCode.LeftControl,
-    ["ALT"] = Enum.KeyCode.LeftAlt, ["CAPS"] = Enum.KeyCode.CapsLock,
-    ["BACKSPACE"] = Enum.KeyCode.Backspace, ["DELETE"] = Enum.KeyCode.Delete,
-    ["HOME"] = Enum.KeyCode.Home, ["END"] = Enum.KeyCode.End,
-    ["PAGEUP"] = Enum.KeyCode.PageUp, ["PAGEDOWN"] = Enum.KeyCode.PageDown,
-    -- 鼠标
-    ["MOUSE1"] = "MouseButton1", ["MOUSE2"] = "MouseButton2",
-    ["MOUSE3"] = "MouseButton3",
-}
-
--- ===============================
--- 键盘模拟函数
--- ===============================
-
--- 按下键盘按键
-local function pressKey(keyName, duration)
-    duration = duration or 0.05
-    local keyCode = KEY_MAP[keyName:upper()]
-    if not keyCode then
-        warn("❌ 未知按键: " .. keyName)
-        return false
-    end
-    
-    local success = pcall(function()
-        -- 使用 VirtualInput 模拟按键
-        local inputObj = {
-            KeyCode = keyCode,
-            UserInputType = Enum.UserInputType.Keyboard,
-            UserInputState = Enum.UserInputState.Begin,
-        }
-        UIS:SendKeyEvent(keyCode, Enum.UserInputState.Begin)
-        task.wait(duration)
-        UIS:SendKeyEvent(keyCode, Enum.UserInputState.End)
-    end)
-    
-    if success then
-        print("⌨️ 按下按键: " .. keyName)
-    else
-        warn("❌ 按键失败: " .. keyName)
-    end
-    return success
-end
-
--- 按住键盘按键（持续按住）
-local function holdKey(keyName, holdTime)
-    holdTime = holdTime or 1
-    local keyCode = KEY_MAP[keyName:upper()]
-    if not keyCode then
-        warn("❌ 未知按键: " .. keyName)
-        return false
-    end
-    
-    local success = pcall(function()
-        UIS:SendKeyEvent(keyCode, Enum.UserInputState.Begin)
-        task.wait(holdTime)
-        UIS:SendKeyEvent(keyCode, Enum.UserInputState.End)
-    end)
-    
-    if success then
-        print("⌨️ 按住按键: " .. keyName .. " (" .. holdTime .. "s)")
-    end
-    return success
-end
-
--- 输入字符串（逐字输入）
-local function typeString(text, delay)
-    delay = delay or 0.05
-    for i = 1, #text do
-        local char = text:sub(i, i)
-        local upper = char:upper()
-        local keyCode = KEY_MAP[upper]
-        if keyCode then
-            pcall(function()
-                UIS:SendKeyEvent(keyCode, Enum.UserInputState.Begin)
-                task.wait(0.02)
-                UIS:SendKeyEvent(keyCode, Enum.UserInputState.End)
-            end)
-        end
-        task.wait(delay)
-    end
-    print("⌨️ 输入文本: " .. text)
-end
-
--- ===============================
--- 鼠标模拟函数
--- ===============================
-
--- 移动鼠标到指定位置
-local function moveMouse(x, y)
-    local success = pcall(function()
-        -- 使用 VirtualInput 模拟鼠标移动
-        UIS:SendMouseMoveEvent(Vector2.new(x, y))
-    end)
-    if success then
-        mouseStates.position = Vector2.new(x, y)
-        print("🖱 鼠标移动到: " .. x .. ", " .. y)
-    end
-    return success
-end
-
--- 相对移动鼠标
-local function moveMouseDelta(dx, dy)
-    local newX = mouseStates.position.X + dx
-    local newY = mouseStates.position.Y + dy
-    return moveMouse(newX, newY)
-end
-
--- 鼠标点击
-local function clickMouse(button, clickType)
-    button = button or "MouseButton1"
-    clickType = clickType or "Single"
-    
-    local success = pcall(function()
-        if clickType == "Double" then
-            -- 双击
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.Begin)
-            task.wait(0.03)
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.End)
-            task.wait(0.08)
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.Begin)
-            task.wait(0.03)
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.End)
-        elseif clickType == "Hold" then
-            -- 按住
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.Begin)
-        elseif clickType == "Release" then
-            -- 释放
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.End)
-        else
-            -- 单击
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.Begin)
-            task.wait(0.03)
-            UIS:SendMouseButtonEvent(button, Enum.UserInputState.End)
-        end
-    end)
-    
-    if success then
-        local btnName = button == "MouseButton1" and "左键" or 
-                       button == "MouseButton2" and "右键" or "中键"
-        print("🖱 鼠标" .. btnName .. " " .. clickType .. "点击")
-    end
-    return success
-end
-
--- 左键点击
-local function leftClick()
-    return clickMouse("MouseButton1", "Single")
-end
-
--- 右键点击
-local function rightClick()
-    return clickMouse("MouseButton2", "Single")
-end
-
--- 双击左键
-local function doubleClick()
-    return clickMouse("MouseButton1", "Double")
-end
-
--- 按住左键
-local function holdLeftClick()
-    return clickMouse("MouseButton1", "Hold")
-end
-
--- 释放左键
-local function releaseLeftClick()
-    return clickMouse("MouseButton1", "Release")
-end
-
--- 滚动鼠标
-local function scrollMouse(delta)
-    delta = delta or 1
-    local success = pcall(function()
-        UIS:SendMouseWheelEvent(delta)
-    end)
-    if success then
-        print("🖱 鼠标滚轮: " .. delta)
-    end
-    return success
-end
-
--- ===============================
--- 组合操作函数
--- ===============================
-
--- 按键组合（如 Ctrl+C）
-local function keyCombo(...)
-    local keys = {...}
-    local keyCodes = {}
-    for _, k in ipairs(keys) do
-        local kc = KEY_MAP[k:upper()]
-        if kc then
-            table.insert(keyCodes, kc)
-        else
-            warn("❌ 未知按键: " .. k)
-            return false
-        end
-    end
-    
-    local success = pcall(function()
-        -- 按下所有键
-        for _, kc in ipairs(keyCodes) do
-            UIS:SendKeyEvent(kc, Enum.UserInputState.Begin)
-        end
-        task.wait(0.05)
-        -- 释放所有键（反向顺序）
-        for i = #keyCodes, 1, -1 do
-            UIS:SendKeyEvent(keyCodes[i], Enum.UserInputState.End)
-        end
-    end)
-    
-    if success then
-        print("⌨️ 组合键: " .. table.concat(keys, "+"))
-    end
-    return success
-end
-
--- Ctrl+C（复制）
-local function copySelection()
-    return keyCombo("CTRL", "C")
-end
-
--- Ctrl+V（粘贴）
-local function pasteSelection()
-    return keyCombo("CTRL", "V")
-end
-
--- Ctrl+A（全选）
-local function selectAll()
-    return keyCombo("CTRL", "A")
-end
-
--- Alt+Tab（切换窗口）
-local function altTab()
-    return keyCombo("ALT", "TAB")
-end
-
--- ===============================
--- 自动化宏
--- ===============================
-
--- 自动点击（连点）
-local autoClickConn = nil
-local autoClickEnabled = false
-local autoClickInterval = 0.1
-
-local function setAutoClick(enabled, interval)
-    autoClickEnabled = enabled
-    autoClickInterval = interval or 0.1
-    if enabled then
-        if autoClickConn then autoClickConn:Disconnect() end
-        autoClickConn = RS.Heartbeat:Connect(function()
-            pcall(function()
-                UIS:SendMouseButtonEvent("MouseButton1", Enum.UserInputState.Begin)
-                task.wait(0.02)
-                UIS:SendMouseButtonEvent("MouseButton1", Enum.UserInputState.End)
-            end)
-            task.wait(autoClickInterval)
-        end)
-        print("🖱 自动点击: 已开启 | 间隔: " .. autoClickInterval .. "s")
-    else
-        if autoClickConn then
-            autoClickConn:Disconnect()
-            autoClickConn = nil
-        end
-        print("🖱 自动点击: 已关闭")
-    end
-end
-
--- 自动走路（W键持续按住）
-local autoWalkConn = nil
-local autoWalkEnabled = false
-
-local function setAutoWalk(enabled)
-    autoWalkEnabled = enabled
-    if enabled then
-        if autoWalkConn then autoWalkConn:Disconnect() end
-        autoWalkConn = RS.Heartbeat:Connect(function()
-            pcall(function()
-                UIS:SendKeyEvent(Enum.KeyCode.W, Enum.UserInputState.Begin)
-            end)
-        end)
-        print("⌨️ 自动走路: 已开启")
-    else
-        if autoWalkConn then
-            autoWalkConn:Disconnect()
-            autoWalkConn = nil
-        end
-        pcall(function()
-            UIS:SendKeyEvent(Enum.KeyCode.W, Enum.UserInputState.End)
-        end)
-        print("⌨️ 自动走路: 已关闭")
-    end
-end
-
--- ===============================
--- 总开关
--- ===============================
-local function setEnabled(state)
-    isEnabled = state
-    if not state then
-        -- 关闭所有自动化
-        setAutoClick(false)
-        setAutoWalk(false)
-        -- 释放所有按键
-        for key, _ in pairs(keyStates) do
-            local keyCode = KEY_MAP[key]
-            if keyCode then
-                pcall(function()
-                    UIS:SendKeyEvent(keyCode, Enum.UserInputState.End)
-                end)
-            end
-        end
-        keyStates = {}
-        -- 释放鼠标
-        pcall(function()
-            UIS:SendMouseButtonEvent("MouseButton1", Enum.UserInputState.End)
-            UIS:SendMouseButtonEvent("MouseButton2", Enum.UserInputState.End)
-        end)
-        print("⏹ 键鼠模拟: 已关闭 | 所有操作已停止")
-    else
-        print("▶️ 键鼠模拟: 已开启")
-    end
-    return isEnabled
-end
-
--- ===============================
--- UI 控制面板
+-- 创建 UI（强制显示）
 -- ===============================
 local SG = Instance.new("ScreenGui")
-SG.Name = "KeyMouseSimulator"
+SG.Name = "KeySimUI"
 SG.ResetOnSpawn = false
-SG.Parent = game.CoreGui
+SG.IgnoreGuiInset = true
+SG.Parent = PG   -- ✅ 最稳的方式
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 360, 0, 580)
-Main.Position = UDim2.new(0.5, -180, 0.5, -290)
-Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+Main.Size = UDim2.new(0, 340, 0, 520)
+Main.Position = UDim2.new(0.5, -170, 0.5, -260)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 Main.BorderSizePixel = 0
 Main.Active = true
-Main.Visible = true
 Main.Parent = SG
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(55, 55, 65)
-stroke.Thickness = 1.5
-stroke.Parent = Main
 
 -- 拖拽
-local dragging, dragStart, startPos = false, nil, nil
-Main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+local dragging, startPos
+Main.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
+        startPos = i.Position
     end
 end)
-UIS.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+UIS.InputChanged:Connect(function(i)
+    if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+        local d = i.Position - startPos
+        Main.Position = UDim2.new(Main.Position.X.Scale, Main.Position.X.Offset + d.X, Main.Position.Y.Scale, Main.Position.Y.Offset + d.Y)
+        startPos = i.Position
     end
 end)
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
 end)
 
 -- 标题
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-TitleBar.Parent = Main
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
-
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -80, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "⌨️ 键鼠模拟器 V1"
-Title.TextColor3 = Color3.fromRGB(230, 230, 235)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+Title.Text = "⌨️ 键盘模拟器（可用）"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
+Title.Parent = Main
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
 
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 36, 0, 36)
-closeBtn.Position = UDim2.new(1, -40, 0, 2)
-closeBtn.BackgroundTransparency = 1
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.fromRGB(180, 80, 80)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.Parent = TitleBar
-closeBtn.MouseButton1Click:Connect(function()
+-- 关闭按钮
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 36, 0, 36)
+Close.Position = UDim2.new(1, -40, 0, 2)
+Close.BackgroundTransparency = 1
+Close.Text = "✕"
+Close.TextColor3 = Color3.fromRGB(255, 100, 100)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 18
+Close.Parent = Main
+Close.MouseButton1Click:Connect(function()
     SG:Destroy()
-    setEnabled(false)
 end)
 
--- 内容区域
+-- 内容区
 local Content = Instance.new("ScrollingFrame")
 Content.Size = UDim2.new(1, 0, 1, -40)
 Content.Position = UDim2.new(0, 0, 0, 40)
 Content.BackgroundTransparency = 1
-Content.ScrollBarThickness = 3
+Content.ScrollBarThickness = 4
 Content.Parent = Main
 
 local Layout = Instance.new("UIListLayout")
 Layout.Padding = UDim.new(0, 6)
 Layout.Parent = Content
 
--- UI 工具函数
-local function section(title)
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 0, 26)
-    l.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
-    l.Text = "▾ " .. title
-    l.TextColor3 = Color3.fromRGB(180, 200, 255)
-    l.Font = Enum.Font.GothamBold
-    l.TextSize = 11
-    l.Parent = Content
-    Instance.new("UICorner", l).CornerRadius = UDim.new(0, 4)
-end
-
-local function button(text, color, height)
-    height = height or 32
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, height)
-    btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 52)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(230, 230, 235)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 11
-    btn.Parent = Content
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    return btn
-end
-
-local function toggle(text, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 32)
-    frame.BackgroundColor3 = Color3.fromRGB(38, 38, 44)
-    frame.Parent = Content
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 5)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.65, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(200, 200, 205)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 11
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    local tbtn = Instance.new("TextButton")
-    tbtn.Size = UDim2.new(0, 50, 0, 22)
-    tbtn.Position = UDim2.new(1, -55, 0.5, -11)
-    tbtn.BackgroundColor3 = default and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(80, 80, 90)
-    tbtn.Text = default and "ON" or "OFF"
-    tbtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tbtn.Font = Enum.Font.GothamBold
-    tbtn.TextSize = 10
-    tbtn.Parent = frame
-    Instance.new("UICorner", tbtn).CornerRadius = UDim.new(0, 11)
-    local state = default
-    tbtn.MouseButton1Click:Connect(function()
-        state = not state
-        tbtn.BackgroundColor3 = state and Color3.fromRGB(60, 180, 80) or Color3.fromRGB(80, 80, 90)
-        tbtn.Text = state and "ON" or "OFF"
-        if callback then callback(state) end
-    end)
-    return frame
+-- 工具函数
+local function btn(text, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -12, 0, 34)
+    b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 12
+    b.Parent = Content
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(cb)
 end
 
 -- ===============================
--- UI 布局
+-- 键盘功能
 -- ===============================
-
--- 总开关
-section("⚡ 总开关")
-toggle("⌨️ 键鼠模拟总开关", false, function(state)
-    setEnabled(state)
+btn("⬆ 按 W 键", function()
+    UIS:SendKeyEvent(Enum.KeyCode.W, Enum.UserInputState.Begin)
+    task.wait(0.05)
+    UIS:SendKeyEvent(Enum.KeyCode.W, Enum.UserInputState.End)
 end)
 
--- 键盘模拟
-section("⌨️ 键盘模拟")
-
-button("按 W 键", Color3.fromRGB(60, 80, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then pressKey("W") end
+btn("⏹ 按空格键", function()
+    UIS:SendKeyEvent(Enum.KeyCode.Space, Enum.UserInputState.Begin)
+    task.wait(0.05)
+    UIS:SendKeyEvent(Enum.KeyCode.Space, Enum.UserInputState.End)
 end)
 
-button("按空格键", Color3.fromRGB(60, 80, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then pressKey("SPACE") end
+btn("📋 Ctrl + C（复制）", function()
+    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.Begin)
+    UIS:SendKeyEvent(Enum.KeyCode.C, Enum.UserInputState.Begin)
+    task.wait(0.05)
+    UIS:SendKeyEvent(Enum.KeyCode.C, Enum.UserInputState.End)
+    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.End)
 end)
 
-button("输入 'Hello'", Color3.fromRGB(60, 100, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then typeString("Hello") end
+btn("📋 Ctrl + V（粘贴）", function()
+    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.Begin)
+    UIS:SendKeyEvent(Enum.KeyCode.V, Enum.UserInputState.Begin)
+    task.wait(0.05)
+    UIS:SendKeyEvent(Enum.KeyCode.V, Enum.UserInputState.End)
+    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.End)
 end)
 
-button("Ctrl + C（复制）", Color3.fromRGB(80, 60, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then copySelection() end
+-- ===============================
+-- 鼠标功能
+-- ===============================
+btn("🖱 左键单击", function()
+    UIS:SendMouseButtonEvent(0, 0, 0, true, game)
+    task.wait(0.03)
+    UIS:SendMouseButtonEvent(0, 0, 0, false, game)
 end)
 
-button("Ctrl + V（粘贴）", Color3.fromRGB(80, 60, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then pasteSelection() end
+btn("🖱 右键单击", function()
+    UIS:SendMouseButtonEvent(0, 0, 1, true, game)
+    task.wait(0.03)
+    UIS:SendMouseButtonEvent(0, 0, 1, false, game)
 end)
 
-button("Ctrl + A（全选）", Color3.fromRGB(80, 60, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then selectAll() end
-end)
-
--- 自动走路
-section("⌨️ 自动走路")
-toggle("自动按住 W", false, function(state)
-    if isEnabled then setAutoWalk(state) end
-end)
-
--- 鼠标模拟
-section("🖱 鼠标模拟")
-
-button("左键单击", Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function()
-    if isEnabled then leftClick() end
-end)
-
-button("右键单击", Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function()
-    if isEnabled then rightClick() end
-end)
-
-button("左键双击", Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function()
-    if isEnabled then doubleClick() end
-end)
-
-button("按住左键 / 释放左键", Color3.fromRGB(120, 80, 80), 38).MouseButton1Click:Connect(function(btn)
-    if not isEnabled then return end
-    if not mouseStates.leftDown then
-        holdLeftClick()
-        mouseStates.leftDown = true
-        btn.Text = "释放左键"
-    else
-        releaseLeftClick()
-        mouseStates.leftDown = false
-        btn.Text = "按住左键 / 释放左键"
+-- ===============================
+-- 自动连点
+-- ===============================
+local clicking = false
+btn("🔁 自动左键连点（开关）", function()
+    clicking = not clicking
+    if clicking then
+        task.spawn(function()
+            while clicking do
+                UIS:SendMouseButtonEvent(0, 0, 0, true, game)
+                task.wait(0.03)
+                UIS:SendMouseButtonEvent(0, 0, 0, false, game)
+                task.wait(0.08)
+            end
+        end)
     end
 end)
 
--- 鼠标移动
-section("🖱 鼠标移动")
-
-button("鼠标移到屏幕中心", Color3.fromRGB(60, 80, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then moveMouse(640, 360) end
-end)
-
-button("鼠标右移 100px", Color3.fromRGB(60, 80, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then moveMouseDelta(100, 0) end
-end)
-
-button("鼠标下移 100px", Color3.fromRGB(60, 80, 120)).MouseButton1Click:Connect(function()
-    if isEnabled then moveMouseDelta(0, 100) end
-end)
-
-button("滚轮上滚", Color3.fromRGB(80, 80, 100)).MouseButton1Click:Connect(function()
-    if isEnabled then scrollMouse(1) end
-end)
-
-button("滚轮下滚", Color3.fromRGB(80, 80, 100)).MouseButton1Click:Connect(function()
-    if isEnabled then scrollMouse(-1) end
-end)
-
--- 自动点击
-section("🖱 自动连点器")
-
-local acToggle = toggle("自动左键连点", false, function(state)
-    if isEnabled then setAutoClick(state, 0.1) end
-end)
-
-button("连点速度: 快 (0.05s)", Color3.fromRGB(80, 60, 100)).MouseButton1Click:Connect(function()
-    if isEnabled and autoClickEnabled then setAutoClick(true, 0.05) end
-end)
-
-button("连点速度: 中 (0.1s)", Color3.fromRGB(80, 60, 100)).MouseButton1Click:Connect(function()
-    if isEnabled and autoClickEnabled then setAutoClick(true, 0.1) end
-end)
-
-button("连点速度: 慢 (0.3s)", Color3.fromRGB(80, 60, 100)).MouseButton1Click:Connect(function()
-    if isEnabled and autoClickEnabled then setAutoClick(true, 0.3) end
-end)
-
--- 预设宏
-section("⚡ 预设宏")
-
-button("🎮 WASD 走路 2 秒", Color3.fromRGB(100, 80, 160), 38).MouseButton1Click:Connect(function()
-    if not isEnabled then return end
-    task.spawn(function()
-        print("⚡ 执行宏: WASD 走路")
-        pressKey("W")
-        task.wait(0.5)
-        pressKey("A")
-        task.wait(0.5)
-        pressKey("S")
-        task.wait(0.5)
-        pressKey("D")
-        task.wait(0.5)
-        print("✅ 宏执行完成")
-    end)
-end)
-
-button("🖱 三连击", Color3.fromRGB(100, 80, 160), 38).MouseButton1Click:Connect(function()
-    if not isEnabled then return end
-    task.spawn(function()
-        print("⚡ 执行宏: 三连击")
-        for i = 1, 3 do
-            leftClick()
-            task.wait(0.15)
+-- ===============================
+-- 控制台 API
+-- ===============================
+_G.KeySim = {
+    Press = function(k)
+        local code = Enum.KeyCode[k]
+        if code then
+            UIS:SendKeyEvent(code, Enum.UserInputState.Begin)
+            task.wait(0.05)
+            UIS:SendKeyEvent(code, Enum.UserInputState.End)
         end
-        print("✅ 宏执行完成")
-    end)
-end)
-
-button("📋 全选+复制", Color3.fromRGB(100, 80, 160), 38).MouseButton1Click:Connect(function()
-    if not isEnabled then return end
-    task.spawn(function()
-        print("⚡ 执行宏: 全选+复制")
-        selectAll()
-        task.wait(0.2)
-        copySelection()
-        print("✅ 宏执行完成")
-    end)
-end)
-
--- 状态显示
-section("📊 运行状态")
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, 0, 0, 60)
-statusLabel.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
-statusLabel.Text = "状态: 已关闭\n\n鼠标位置: 0, 0"
-statusLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 10
-statusLabel.Parent = Content
-statusLabel.TextWrapped = true
-Instance.new("UICorner", statusLabel).CornerRadius = UDim.new(0, 5)
-
-RS.RenderStepped:Connect(function()
-    if statusLabel then
-        local state = isEnabled and "✅ 已开启" or "❌ 已关闭"
-        statusLabel.Text = string.format("状态: %s\n\n鼠标位置: %.0f, %.0f\n自动走路: %s | 自动连点: %s",
-            state, mouseStates.position.X, mouseStates.position.Y,
-            autoWalkEnabled and "✅" or "❌",
-            autoClickEnabled and "✅" or "❌")
-        statusLabel.TextColor3 = isEnabled and Color3.fromRGB(100, 255, 140) or Color3.fromRGB(150, 150, 170)
+    end,
+    Click = function()
+        UIS:SendMouseButtonEvent(0, 0, 0, true, game)
+        task.wait(0.03)
+        UIS:SendMouseButtonEvent(0, 0, 0, false, game)
     end
-end)
-
--- ===============================
--- 全局 API（可在控制台调用）
--- ===============================
-_G.KeyMouse = {
-    -- 键盘
-    PressKey = pressKey,
-    HoldKey = holdKey,
-    TypeString = typeString,
-    KeyCombo = keyCombo,
-    Copy = copySelection,
-    Paste = pasteSelection,
-    SelectAll = selectAll,
-    -- 鼠标
-    MoveMouse = moveMouse,
-    MoveMouseDelta = moveMouseDelta,
-    LeftClick = leftClick,
-    RightClick = rightClick,
-    DoubleClick = doubleClick,
-    HoldLeft = holdLeftClick,
-    ReleaseLeft = releaseLeftClick,
-    Scroll = scrollMouse,
-    -- 自动化
-    SetAutoClick = setAutoClick,
-    SetAutoWalk = setAutoWalk,
-    -- 总开关
-    SetEnabled = setEnabled,
-    -- 状态
-    IsEnabled = function() return isEnabled end,
-    GetMousePos = function() return mouseStates.position end,
 }
 
-print("✅ 键鼠模拟器 V1 加载完成！")
-print("💡 控制台可用 API: _G.KeyMouse")
-print("   如: _G.KeyMouse.PressKey('W')")
-print("   如: _G.KeyMouse.MoveMouse(640, 360)")
-print("   如: _G.KeyMouse.SetAutoClick(true, 0.1)")
+print("✅ 键盘模拟脚本加载成功")
+print("💡 控制台可用: _G.KeySim.Press(\"W\")")
