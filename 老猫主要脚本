@@ -1,0 +1,147 @@
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local Workspace=game:GetService("Workspace")
+local ReplicatedStorage=game:GetService("ReplicatedStorage")
+local UserInputService=game:GetService("UserInputService")
+local TweenService=game:GetService("TweenService")
+
+local LocalPlayer=Players.LocalPlayer
+local Character=LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RootPart=Character:WaitForChild("HumanoidRootPart")
+
+_G.Settings={
+    AutoMine=false,AutoChop=false,AutoGlacierWood=false,AutoFish=false,
+    AutoSmelt=false,AutoPolish=false,AutoProcess=false,AutoUnpack=false,
+    AutoMeteor=false,AutoTransport=false,TransportBatchSize=5
+}
+
+local TeleportPoints={["箱子"]=Vector3.zero,["熔炉"]=Vector3.zero,["出售点"]=Vector3.zero,["抛光台"]=Vector3.zero,["分解台"]=Vector3.zero}
+local AllLocations={["UCS"]=Vector3.zero,["Silver"]=Vector3.zero,["Tucker"]=Vector3.zero,["Coal"]=Vector3.zero,["Nautic"]=Vector3.zero,["Craig"]=Vector3.zero,["LandAgency"]=Vector3.zero,["BuildNCrate"]=Vector3.zero,["Dell"]=Vector3.zero,["Marble"]=Vector3.zero,["Jungle"]=Vector3.zero,["Swamp"]=Vector3.zero,["Deadzone"]=Vector3.zero,["StoneCradle"]=Vector3.zero,["CaveEntrance"]=Vector3.zero,["LushValley"]=Vector3.zero,["KingHall"]=Vector3.zero,["Rosewell"]=Vector3.zero,["MountainAdam"]=Vector3.zero,["Cloudnite"]=Vector3.zero,["ViLogics"]=Vector3.zero,["ViLab"]=Vector3.zero,["Scorching"]=Vector3.zero,["CrystalAbyss"]=Vector3.zero,["Sakura"]=Vector3.zero,["LunarPalace"]=Vector3.zero,["SporeCave"]=Vector3.zero,["Volcano"]=Vector3.zero,["CloudMine"]=Vector3.zero}
+
+local function safeTouch(a,b)firetouchinterest(a,b,0)task.wait(0.05)firetouchinterest(a,b,1)end
+local function simulateWalk()local h=Character:FindFirstChildOfClass("Humanoid")if h then h:ChangeState(Enum.HumanoidStateType.Running)end end
+local function getClosest(tbl)local b,d=nil,math.huge for _,v in pairs(tbl)do local dist=(v.Position-RootPart.Position).Magnitude if dist<d then b,d=v,dist end end return b,d end
+local function scanOres()local t={}for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("ore")then table.insert(t,v)end end return t end
+local function scanTrees()local t={}for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("tree")then table.insert(t,v)end end return t end
+local function scanGlacierWood()local t={}for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")then local n=v.Name:lower()if n:find("glacier")or n:find("ice")or n:find("frozen")or n:find("frost")then table.insert(t,v)end end end return t end
+local function scanMyWood()local t,uid={},LocalPlayer.UserId for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("wood")then for _,c in pairs(v:GetChildren())do if c:IsA("ObjectValue")and c.Value==LocalPlayer then table.insert(t,v)break elseif c:IsA("IntValue")and c.Value==uid then table.insert(t,v)break end end end end return t end
+local function scanMeteors()local t={}for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("meteor")then table.insert(t,v)end end return t end
+local function scanFurnace()for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("furnace")then return v end end return nil end
+local function scanPolisher()for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("polish")then return v end end return nil end
+local function scanUnpacker()for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")or v:IsA("Model")then local n=v.Name:lower()if n:find("unpack")or n:find("saw")or n:find("plank")or n:find("workbench")then return v:IsA("BasePart")and v or v:FindFirstChildWhichIsA("BasePart")end end end return nil end
+local function scanWoodProcessor()for _,v in pairs(Workspace:GetDescendants())do if v:IsA("BasePart")and v.Name:lower():find("wood")then return v end end return nil end
+local function getTreeHealth(t)for _,n in pairs({"Health","HP","Integrity","Strength","IceStrength"})do local v=t:FindFirstChild(n)if v and v:IsA("ValueBase")then return v.Value end end return nil end
+local function isTreeAlive(t)local hp=getTreeHealth(t)if hp then return hp>0 end return t and t.Parent~=nil end
+local function remoteMine(o)if not o then return end task.spawn(function()for i=1,5 do safeTouch(RootPart,o)task.wait(0.2)end end)end
+local function remoteChop(t)if not t then return end task.spawn(function()for i=1,6 do safeTouch(RootPart,t)task.wait(0.15)end end)end
+local function remoteChopGlacier(w)if not w then return end task.spawn(function()for i=1,6 do safeTouch(RootPart,w)task.wait(0.15)end end)end
+local function predictLandingPoint(m)local vel=m.AssemblyLinearVelocity local pos=m.Position local ttl=pos.Y/math.abs(vel.Y)return pos+vel*ttl end
+local function safeTeleport(p)local h=Character:FindFirstChildOfClass("Humanoid")if h then h.WalkSpeed=16 h:MoveTo(p)end task.wait(0.5)RootPart.CFrame=CFrame.new(p+Vector3.new(0,5,0))end
+local SelectedItems={}
+local function quickTouch(i)if not i then return end firetouchinterest(RootPart,i,0)task.wait(0.03)firetouchinterest(RootPart,i,1)end
+local function pushItem(i,t)if not i:IsA("BasePart")then return end for x=1,20 do local dir=(t-i.Position).Unit i.CFrame=i.CFrame+dir*0.4 task.wait()end end
+local function transportItems(n)local tp=TeleportPoints[n]if not tp then return end if #SelectedItems==0 then return end local b={}for idx,it in pairs(SelectedItems)do if it and it.Parent then table.insert(b,it)if #b==_G.Settings.TransportBatchSize or idx==#SelectedItems then for _,v in pairs(b)do quickTouch(v)end task.wait(0.3)for _,v in pairs(b)do task.spawn(function()pushItem(v,tp)end)end task.wait(1.5)table.clear(b)end end end end
+
+local ScreenGui=Instance.new("ScreenGui")
+ScreenGui.Name="RC2_Ultimate"
+ScreenGui.ResetOnSpawn=false
+ScreenGui.Parent=game.CoreGui
+
+local MainFrame=Instance.new("Frame")
+MainFrame.Size=UDim2.new(0,260,0,420)
+MainFrame.Position=UDim2.new(0,10,0,100)
+MainFrame.BackgroundColor3=Color3.fromRGB(25,25,35)
+MainFrame.Parent=ScreenGui
+
+local Title=Instance.new("TextLabel")
+Title.Size=UDim2.new(1,0,0,35)
+Title.Text="🔧 RC2 Ultimate"
+Title.TextColor3=Color3.new(1,1,1)
+Title.BackgroundColor3=Color3.fromRGB(40,40,60)
+Title.Font=Enum.Font.GothamBold
+Title.TextSize=16
+Title.Parent=MainFrame
+
+local Tabs={"采集","加工","传送","高级"}
+local TabFrames={}
+for i,n in pairs(Tabs)do
+    local tb=Instance.new("TextButton")
+    tb.Size=UDim2.new(0.25,-4,0,25)
+    tb.Position=UDim2.new((i-1)*0.25,2,0,38)
+    tb.Text=n
+    tb.BackgroundColor3=Color3.fromRGB(50,50,70)
+    tb.TextColor3=Color3.new(1,1,1)
+    tb.Font=Enum.Font.Gotham
+    tb.TextSize=12
+    tb.Parent=MainFrame
+    local f=Instance.new("Frame")
+    f.Size=UDim2.new(1,-10,1,-70)
+    f.Position=UDim2.new(0,5,0,68)
+    f.BackgroundTransparency=1
+    f.Visible=i==1
+    f.Parent=MainFrame
+    TabFrames[n]=f
+    tb.MouseButton1Click:Connect(function()for _,x in pairs(TabFrames)do x.Visible=false end f.Visible=true end)
+end
+
+local function toggle(p,n,y)s=Instance.new("TextButton")s.Size=UDim2.new(1,-10,0,28)s.Position=UDim2.new(0,5,0,y)s.BackgroundColor3=Color3.fromRGB(55,55,75)s.TextColor3=Color3.new(1,1,1)s.Font=Enum.Font.Gotham;s.TextSize=13;s.Parent=p;local u=function()_G.Settings[n]=not _G.Settings[n]s.Text=n..":"..(_G.Settings[n]and"✅ON"or"❌OFF")s.BackgroundColor3=_G.Settings[n]and Color3.fromRGB(60,100,60)or Color3.fromRGB(55,55,75)end u()s.MouseButton1Click:Connect(u)end
+toggle(TabFrames["采集"],"AutoMine",0)
+toggle(TabFrames["采集"],"AutoChop",35)
+toggle(TabFrames["采集"],"AutoGlacierWood",70)
+toggle(TabFrames["采集"],"AutoFish",105)
+toggle(TabFrames["采集"],"AutoMeteor",140)
+toggle(TabFrames["加工"],"AutoSmelt",0)
+toggle(TabFrames["加工"],"AutoPolish",35)
+toggle(TabFrames["加工"],"AutoProcess",70)
+toggle(TabFrames["加工"],"AutoUnpack",105)
+
+local locScroll=Instance.new("ScrollingFrame",TabFrames["传送"])
+locScroll.Size=UDim2.new(1,-10,1,-35)
+locScroll.Position=UDim2.new(0,5,0,0)
+locScroll.CanvasSize=UDim2.new(0,0,0,0)
+local ly=0
+for n,p in pairs(AllLocations)do
+    local b=Instance.new("TextButton",locScroll)
+    b.Size=UDim2.new(1,-5,0,26)
+    b.Position=UDim2.new(0,0,0,ly)
+    b.Text="📍"..n
+    b.BackgroundColor3=Color3.fromRGB(55,55,75)
+    b.TextColor3=Color3.new(1,1,1)
+    b.Font=Enum.Font.Gotham
+    b.TextSize=12
+    b.MouseButton1Click:Connect(function()safeTeleport(p)end)
+    ly=ly+28
+end
+locScroll.CanvasSize=UDim2.new(0,0,0,ly)
+
+local adv=TabFrames["高级"]
+local itemTypes={"矿石","木头","鱼","掉落物"}
+local selectedType="矿石"
+local y=0
+for _,n in pairs(itemTypes)do local b=Instance.new("TextButton",adv)b.Size=UDim2.new(1,-10,0,26)b.Position=UDim2.new(0,5,0,y)b.Text="📦类型:"..n;b.BackgroundColor3=Color3.fromRGB(55,55,75);b.TextColor3=Color3.new(1,1,1);b.Font=Enum.Font.Gotham;b.TextSize=12;b.MouseButton1Click:Connect(function()selectedType=n end)y=y+30 end
+local points={"箱子","熔炉","出售点","抛光台","分解台"}
+local selectedPoint="箱子"
+for _,n in pairs(points)do local b=Instance.new("TextButton",adv)b.Size=UDim2.new(1,-10,0,26)b.Position=UDim2.new(0,5,0,y)b.Text="🎯目标:"..n;b.BackgroundColor3=Color3.fromRGB(55,55,75);b.TextColor3=Color3.new(1,1,1);b.Font=Enum.Font.Gotham;b.TextSize=12;b.MouseButton1Click:Connect(function()selectedPoint=n end)y=y+30 end
+local sb=Instance.new("TextButton",adv)sb.Size=UDim2.new(1,-10,0,26)sb.Position=UDim2.new(0,5,0,y)sb.Text="📍设置传送点"sb.BackgroundColor3=Color3.fromRGB(80,120,80)sb.TextColor3=Color3.new(1,1,1)sb.Font=Enum.Font.Gotham;s.TextSize=12;sb.MouseButton1Click:Connect(function()TeleportPoints[selectedPoint]=RootPart.Position end)y=y+30
+local tb=Instance.new("TextButton",adv)tb.Size=UDim2.new(1,-10,0,28)tb.Position=UDim2.new(0,5,0,y)tb.Text="🚀传送选中物品"tb.BackgroundColor3=Color3.fromRGB(60,100,160)tb.TextColor3=Color3.new(1,1,1)tb.Font=Enum.Font.Gotham;tb.TextSize=13;tb.MouseButton1Click:Connect(function()transportItems(selectedPoint)end)y=y+35
+local rb=Instance.new("TextButton",adv)rb.Size=UDim2.new(1,-10,0,26)rb.Position=UDim2.new(0,5,0,y)rb.Text="🔄刷新木头列表"rb.BackgroundColor3=Color3.fromRGB(80,120,80)rb.TextColor3=Color3.new(1,1,1)rb.Font=Enum.Font.Gotham;rb.TextSize=12
+local ws=Instance.new("ScrollingFrame",adv)ws.Size=UDim2.new(1,-10,0,130)ws.Position=UDim2.new(0,5,0,y+30)ws.BackgroundTransparency=1
+rb.MouseButton1Click:Connect(function()ws:ClearAllChildren()SelectedItems={}local woods=scanMyWood()local wy=0 for i,w in pairs(woods)do local b=Instance.new("TextButton",ws)b.Size=UDim2.new(1,-5,0,24)b.Position=UDim2.new(0,0,0,wy)b.Text="🪵"..w.Name b.BackgroundColor3=Color3.fromRGB(55,55,75)b.TextColor3=Color3.new(1,1,1)b.Font=Enum.Font.Gotham;b.TextSize=11;b.MouseButton1Click:Connect(function()if table.find(SelectedItems,w)then for j,v in pairs(SelectedItems)do if v==w then table.remove(SelectedItems,j)break end end b.Text="🪵"..w.Name else table.insert(SelectedItems,w)b.Text="✅"..w.Name end end)wy=wy+26 end ws.CanvasSize=UDim2.new(0,0,0,wy)end)
+
+local currentOre,currentTree,currentGlacier=nil,nil,nil
+RunService.RenderStepped:Connect(function()
+    simulateWalk()
+    if _G.Settings.AutoMine then if not currentOre then currentOre=getClosest(scanOres())end if currentOre then remoteMine(currentOre)end else currentOre=nil end
+    if _G.Settings.AutoChop then if not currentTree or not isTreeAlive(currentTree)then currentTree=getClosest(scanGlacierWood())or getClosest(scanTrees())end if currentTree then remoteChop(currentTree)end else currentTree=nil end
+    if _G.Settings.AutoGlacierWood then if not currentGlacier or not isTreeAlive(currentGlacier)then currentGlacier=getClosest(scanGlacierWood())end if currentGlacier then remoteChopGlacier(currentGlacier)end else currentGlacier=nil end
+end)
+
+task.spawn(function()while task.wait(2)do if _G.Settings.AutoSmelt then local f=scanFurnace()if f then for _,o in pairs(scanOres())do safeTouch(o,f)task.wait(0.3)end end end end end)
+task.spawn(function()while task.wait(2)do if _G.Settings.AutoPolish then local p=scanPolisher()if p then for _,o in pairs(scanOres())do safeTouch(o,p)task.wait(0.3)end end end end end)
+task.spawn(function()while task.wait(2)do if _G.Settings.AutoProcess then local w=scanWoodProcessor()if w then for _,wd in pairs(scanMyWood())do safeTouch(wd,w)task.wait(0.3)end end end end end)
+task.spawn(function()while task.wait(2)do if _G.Settings.AutoUnpack then local u=scanUnpacker()if u then for _,wd in pairs(scanMyWood())do safeTouch(wd,u)task.wait(0.3)end end end end end)
+task.spawn(function()while task.wait(1)do if _G.Settings.AutoMeteor then local m=getClosest(scanMeteors())if m then local pt=predictLandingPoint(m)RootPart.CFrame=CFrame.new(Vector3.new(pt.X,0,pt.Z)+Vector3.new(0,5,0))end end end end)
+task.spawn(function()while task.wait(30)do pcall(function()UserInputService.InputBegan:Fire(Enum.UserInputType.MouseMovement,false)local h=Character:FindFirstChildOfClass("Humanoid")if h then h:Move(Vector3.new(0.01,0,0))task.defer(function()h:Move(Vector3.zero)end)end end)end end)
+UserInputService.InputBegan:Connect(function(i)if i.KeyCode==Enum.KeyCode.F5 then ScreenGui.Enabled=not ScreenGui.Enabled end end)
+LocalPlayer.CharacterAdded:Connect(function(c)Character=c RootPart=c:WaitForChild("HumanoidRootPart")end)
+
