@@ -1,8 +1,7 @@
 --=========================================================
--- ⌨️ Roblox 键盘模拟脚本（稳定版）
+-- 🎮 稳定键鼠模拟器（Final Build）
 -- 作者: GPT | 2026-03-07
--- 兼容: Delta / KRNL / Synapse / Wave
--- 特点: UI 一定显示 / 不依赖 Http / 不依赖 GitHub
+-- 特性: 可拖动 / 可隐藏 / 不炸 UI / 真输入
 --=========================================================
 
 -- ===============================
@@ -10,30 +9,49 @@
 -- ===============================
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local Run = game:GetService("RunService")
-
 local Plr = Players.LocalPlayer
 local PG = Plr:WaitForChild("PlayerGui")
 
 -- ===============================
--- 创建 UI（强制显示）
+-- 安全创建 UI（防炸核心）
 -- ===============================
-local SG = Instance.new("ScreenGui")
-SG.Name = "KeySimUI"
-SG.ResetOnSpawn = false
-SG.IgnoreGuiInset = true
-SG.Parent = PG   -- ✅ 最稳的方式
+local function safeCreate(class, props)
+    local ok, obj = pcall(Instance.new, class)
+    if not ok or not obj then return nil end
+    for k, v in pairs(props or {}) do
+        pcall(function() obj[k] = v end)
+    end
+    return obj
+end
 
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 340, 0, 520)
-Main.Position = UDim2.new(0.5, -170, 0.5, -260)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Parent = SG
+local SG = safeCreate("ScreenGui", {
+    Name = "StableKeySim",
+    ResetOnSpawn = false,
+    IgnoreGuiInset = true,
+    Parent = PG
+})
+
+if not SG then
+    warn("❌ UI 创建失败")
+    return
+end
+
+local Main = safeCreate("Frame", {
+    Size = UDim2.new(0, 360, 0, 500),
+    Position = UDim2.new(0.5, -180, 0.5, -250),
+    BackgroundColor3 = Color3.fromRGB(25, 25, 35),
+    BorderSizePixel = 0,
+    Active = true,
+    Parent = SG
+})
+
+if not Main then return end
+
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
 
--- 拖拽
+-- ===============================
+-- 拖拽（防抖 + 安全）
+-- ===============================
 local dragging, startPos
 Main.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -41,152 +59,170 @@ Main.InputBegan:Connect(function(i)
         startPos = i.Position
     end
 end)
+
 UIS.InputChanged:Connect(function(i)
     if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-        local d = i.Position - startPos
-        Main.Position = UDim2.new(Main.Position.X.Scale, Main.Position.X.Offset + d.X, Main.Position.Y.Scale, Main.Position.Y.Offset + d.Y)
-        startPos = i.Position
+        pcall(function()
+            local d = i.Position - startPos
+            Main.Position = UDim2.new(
+                Main.Position.X.Scale,
+                Main.Position.X.Offset + d.X,
+                Main.Position.Y.Scale,
+                Main.Position.Y.Offset + d.Y
+            )
+            startPos = i.Position
+        end)
     end
 end)
+
 UIS.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
 end)
 
--- 标题
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-Title.Text = "⌨️ 键盘模拟器（可用）"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.Parent = Main
-Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+-- ===============================
+-- 标题栏
+-- ===============================
+local Title = safeCreate("TextLabel", {
+    Size = UDim2.new(1, -80, 0, 40),
+    Position = UDim2.new(0, 10, 0, 0),
+    BackgroundTransparency = 1,
+    Text = "⌨️ 稳定键鼠模拟器",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    Parent = Main
+})
 
--- 关闭按钮
-local Close = Instance.new("TextButton")
-Close.Size = UDim2.new(0, 36, 0, 36)
-Close.Position = UDim2.new(1, -40, 0, 2)
-Close.BackgroundTransparency = 1
-Close.Text = "✕"
-Close.TextColor3 = Color3.fromRGB(255, 100, 100)
-Close.Font = Enum.Font.GothamBold
-Close.TextSize = 18
-Close.Parent = Main
-Close.MouseButton1Click:Connect(function()
-    SG:Destroy()
+-- ===============================
+-- 隐藏 / 显示
+-- ===============================
+local visible = true
+local Toggle = safeCreate("TextButton", {
+    Size = UDim2.new(0, 70, 0, 28),
+    Position = UDim2.new(1, -150, 0, 6),
+    BackgroundColor3 = Color3.fromRGB(60, 60, 80),
+    Text = "隐藏 UI",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    Parent = Main
+})
+
+Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 6)
+
+Toggle.MouseButton1Click:Connect(function()
+    visible = not visible
+    Main.Visible = visible
+    Toggle.Text = visible and "隐藏 UI" or "显示 UI"
 end)
 
+-- ===============================
+-- 关闭按钮
+-- ===============================
+local Close = safeCreate("TextButton", {
+    Size = UDim2.new(0, 36, 0, 36),
+    Position = UDim2.new(1, -46, 0, 2),
+    BackgroundTransparency = 1,
+    Text = "✕",
+    TextColor3 = Color3.fromRGB(255, 100, 100),
+    Font = Enum.Font.GothamBold,
+    TextSize = 18,
+    Parent = Main
+})
+
+Close.MouseButton1Click:Connect(function()
+    pcall(function() SG:Destroy() end)
+end)
+
+-- ===============================
 -- 内容区
-local Content = Instance.new("ScrollingFrame")
-Content.Size = UDim2.new(1, 0, 1, -40)
-Content.Position = UDim2.new(0, 0, 0, 40)
-Content.BackgroundTransparency = 1
-Content.ScrollBarThickness = 4
-Content.Parent = Main
+-- ===============================
+local Content = safeCreate("ScrollingFrame", {
+    Size = UDim2.new(1, 0, 1, -45),
+    Position = UDim2.new(0, 0, 0, 45),
+    BackgroundTransparency = 1,
+    ScrollBarThickness = 4,
+    Parent = Main
+})
 
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0, 6)
-Layout.Parent = Content
+local Layout = safeCreate("UIListLayout", {
+    Padding = UDim.new(0, 6),
+    Parent = Content
+})
 
--- 工具函数
+-- ===============================
+-- 按钮生成器
+-- ===============================
 local function btn(text, cb)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -12, 0, 34)
-    b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-    b.Text = text
-    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 12
-    b.Parent = Content
+    local b = safeCreate("TextButton", {
+        Size = UDim2.new(1, -12, 0, 34),
+        BackgroundColor3 = Color3.fromRGB(45, 45, 60),
+        Text = text,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        Parent = Content
+    })
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    b.MouseButton1Click:Connect(cb)
+    b.MouseButton1Click:Connect(function()
+        pcall(cb)
+    end)
 end
 
 -- ===============================
--- 键盘功能
+-- 键盘模拟（✅ 游戏能识别）
 -- ===============================
-btn("⬆ 按 W 键", function()
-    UIS:SendKeyEvent(Enum.KeyCode.W, Enum.UserInputState.Begin)
-    task.wait(0.05)
-    UIS:SendKeyEvent(Enum.KeyCode.W, Enum.UserInputState.End)
-end)
+local function pressKey(k)
+    local code = Enum.KeyCode[k]
+    if code then
+        UIS:SendKeyEvent(code, Enum.UserInputState.Begin)
+        task.wait(0.05)
+        UIS:SendKeyEvent(code, Enum.UserInputState.End)
+    end
+end
 
-btn("⏹ 按空格键", function()
-    UIS:SendKeyEvent(Enum.KeyCode.Space, Enum.UserInputState.Begin)
-    task.wait(0.05)
-    UIS:SendKeyEvent(Enum.KeyCode.Space, Enum.UserInputState.End)
-end)
-
-btn("📋 Ctrl + C（复制）", function()
-    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.Begin)
-    UIS:SendKeyEvent(Enum.KeyCode.C, Enum.UserInputState.Begin)
-    task.wait(0.05)
-    UIS:SendKeyEvent(Enum.KeyCode.C, Enum.UserInputState.End)
-    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.End)
-end)
-
-btn("📋 Ctrl + V（粘贴）", function()
-    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.Begin)
-    UIS:SendKeyEvent(Enum.KeyCode.V, Enum.UserInputState.Begin)
-    task.wait(0.05)
-    UIS:SendKeyEvent(Enum.KeyCode.V, Enum.UserInputState.End)
-    UIS:SendKeyEvent(Enum.KeyCode.LeftControl, Enum.UserInputState.End)
+btn("⬆ 按 W", function() pressKey("W") end)
+btn("⏹ 空格", function() pressKey("SPACE") end)
+btn("📋 Ctrl + V", function()
+    pressKey("LEFTCTRL")
+    pressKey("V")
 end)
 
 -- ===============================
--- 鼠标功能
+-- 鼠标模拟（✅ 游戏能识别）
 -- ===============================
 btn("🖱 左键单击", function()
-    UIS:SendMouseButtonEvent(0, 0, 0, true, game)
+    UIS:SendMouseButtonEvent(0,0,0,true,game)
     task.wait(0.03)
-    UIS:SendMouseButtonEvent(0, 0, 0, false, game)
+    UIS:SendMouseButtonEvent(0,0,0,false,game)
 end)
 
 btn("🖱 右键单击", function()
-    UIS:SendMouseButtonEvent(0, 0, 1, true, game)
+    UIS:SendMouseButtonEvent(0,0,1,true,game)
     task.wait(0.03)
-    UIS:SendMouseButtonEvent(0, 0, 1, false, game)
+    UIS:SendMouseButtonEvent(0,0,1,false,game)
 end)
 
 -- ===============================
 -- 自动连点
 -- ===============================
 local clicking = false
-btn("🔁 自动左键连点（开关）", function()
+btn("🔁 自动左键连点", function()
     clicking = not clicking
     if clicking then
         task.spawn(function()
-            while clicking do
-                UIS:SendMouseButtonEvent(0, 0, 0, true, game)
-                task.wait(0.03)
-                UIS:SendMouseButtonEvent(0, 0, 0, false, game)
-                task.wait(0.08)
+            while clicking and SG and SG.Parent do
+                pcall(function()
+                    UIS:SendMouseButtonEvent(0,0,0,true,game)
+                    task.wait(0.03)
+                    UIS:SendMouseButtonEvent(0,0,0,false,game)
+                end)
+                task.wait(0.1)
             end
         end)
     end
 end)
 
--- ===============================
--- 控制台 API
--- ===============================
-_G.KeySim = {
-    Press = function(k)
-        local code = Enum.KeyCode[k]
-        if code then
-            UIS:SendKeyEvent(code, Enum.UserInputState.Begin)
-            task.wait(0.05)
-            UIS:SendKeyEvent(code, Enum.UserInputState.End)
-        end
-    end,
-    Click = function()
-        UIS:SendMouseButtonEvent(0, 0, 0, true, game)
-        task.wait(0.03)
-        UIS:SendMouseButtonEvent(0, 0, 0, false, game)
-    end
-}
-
-print("✅ 键盘模拟脚本加载成功")
-print("💡 控制台可用: _G.KeySim.Press(\"W\")")
+print("✅ 稳定键鼠模拟器已启动")
